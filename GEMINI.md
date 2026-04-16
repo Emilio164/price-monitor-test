@@ -44,5 +44,8 @@
 ## Recommended Next Steps
 1.  **Implement DiamondSystem Scraper:** Add support for the third target site following the `scraper-architect` standards.
 2.  **Notification System:** Implement the logic to detect price drops (2% threshold) and show alerts in the UI.
-3.  **Search Feature:** Implement "Product Mapping" to allow searching by keyword across sites instead of only by direct URL.
-4.  **Batch Update Optimization:** Refine the background process to handle more products simultaneously if the list grows.
+3.  **Grouping & Comparison:** Implement a "Common Product Name" or "Group ID" to compare the same product across different stores (FullH4rd vs Compragamer) in the same view.
+4.  **Tagging/Categories:** Enable a tagging system (e.g., "Monitor", "GPU", "SSD") to filter the dashboard by product type.
+5.  **Enhanced Price Drop Metrics:** When a price drops (even if not a minimum), display the exact reduction amount and percentage (e.g., "-$5,000 | -12%").
+6.  **Full Localization:** Translate all UI labels and messages to Spanish for consistency.
+7.  **Search Feature:** Implement "Product Mapping" to allow searching by keyword across sites instead of only by direct URL.
