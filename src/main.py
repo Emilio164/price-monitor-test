@@ -265,16 +265,23 @@ if page == "Dashboard":
                             with col3:
                                 trend_icon = "-"
                                 trend_color = "gray"
+                                trend_details = ""
                                 if prev > 0:
                                     if curr < prev:
                                         trend_icon = "↓"
                                         trend_color = "green"
+                                        diff = prev - curr
+                                        percent = (diff / prev) * 100
+                                        trend_details = f"<br><span style='color:green; font-size: 14px;'>📉 -${diff:,.2f} (-{percent:.1f}%)</span>"
                                     elif curr > prev:
                                         trend_icon = "↑"
                                         trend_color = "red"
+                                        diff = curr - prev
+                                        percent = (diff / prev) * 100
+                                        trend_details = f"<br><span style='color:red; font-size: 14px;'>📈 +${diff:,.2f} (+{percent:.1f}%)</span>"
                                 
                                 st.markdown(f"#### ${curr:,.2f}")
-                                st.markdown(f"<span style='color:{trend_color}; font-size: 18px;'>{trend_icon}</span> (vs anterior)", unsafe_allow_html=True)
+                                st.markdown(f"<span style='color:{trend_color}; font-size: 18px;'>{trend_icon}</span> (vs anterior){trend_details}", unsafe_allow_html=True)
                             
                             with col4:
                                 if is_inflated:
