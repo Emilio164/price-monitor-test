@@ -5,6 +5,28 @@ import asyncio
 import nest_asyncio
 import pandas as pd
 import random
+import subprocess # Para instalar Playwright automáticamente en la nube
+
+# --- Playwright Auto-Install for Cloud ---
+def install_playwright():
+    """Attempts to install playwright browsers if they are missing."""
+    try:
+        import playwright
+    except ImportError:
+        return # requirements.txt will handle this later
+        
+    try:
+        # Check if browsers are already installed
+        # This is a light-weight check, if it fails, we install
+        subprocess.run(["playwright", "install", "chromium"], check=True)
+    except Exception as e:
+        st.error(f"Error installing playwright browsers: {e}")
+
+# This runs once on app load
+if os.environ.get("DATABASE_URL"): # Simple check to see if we are in Cloud/Production
+    with st.spinner("Initializing Cloud Environment (Playwright)... This may take a minute."):
+        install_playwright()
+
 from database.db_manager import DatabaseManager
 from scrapers.fullh4rd_scraper import FullH4rdScraper
 from scrapers.compragamer_scraper import CompragamerScraper
