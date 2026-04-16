@@ -1,5 +1,11 @@
 import asyncio
 import random
+import sys
+import os
+
+# Asegurar que la raíz del proyecto esté en el path para las importaciones de 'src'
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
 from src.database.db_manager import DatabaseManager
 from src.scrapers.fullh4rd_scraper import FullH4rdScraper
 from src.scrapers.compragamer_scraper import CompragamerScraper
