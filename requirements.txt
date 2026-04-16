@@ -1,0 +1,8 @@
+playwright
+beautifulsoup4
+sqlalchemy
+streamlit
+matplotlib
+requests
+pandas
+nest_asyncio
