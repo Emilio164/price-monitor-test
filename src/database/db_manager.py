@@ -15,9 +15,10 @@ if DB_URL and DB_URL.startswith("postgres://"):
 
 class DatabaseManager:
     def __init__(self, db_url=DB_URL):
-        # Ensure data directory exists
-        db_path = db_url.replace("sqlite:///", "")
-        os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+        # Solo crear directorios si usamos SQLite local
+        if "sqlite" in db_url:
+            db_path = db_url.replace("sqlite:///", "")
+            os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
         
         self.engine = create_engine(db_url)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
