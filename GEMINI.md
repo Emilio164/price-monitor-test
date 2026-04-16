@@ -1,51 +1,38 @@
 # GEMINI.md - Project Context
 
 ## Project Overview
-`segundo-proyecto` is a **Multi-Site Price Monitor (Backend Focus)** application. Its goal is to track, compare, and notify price changes of specific products on pre-defined e-commerce websites (Compragamer, FullH4rd, Diamond Computacion).
+`segundo-proyecto` is a **Multi-Site Price Monitor (Cloud-Native)** application. Its goal is to track, compare, and notify price changes across Compragamer, FullH4rd, and Diamond Computacion.
 
 **Key Features:**
-- **Product Mapping & Selection:** User searches for a general term, sees results from configured sites, and manually selects specific products to track (via URL).
-- **Modular Scraping:** Individual scraper modules per store to facilitate maintenance.
-- **Price Comparison Engine:** Analyzes current price vs. last saved price and historical minimums.
-- **Smart Analysis:** Calculates price trends (arrows) and 30-day medians to detect "Inflated Prices" vs. "Real Opportunities".
-- **Local Database (SQLite):** Stores tracked products (URL, chosen name, store) and price history (timestamp, detected price).
-- **Smart Notification Logic:** Alerts for price drops exceeding a configurable threshold (e.g., 2%), highlighting "OFFER" or "NEW MINIMUM." Will also track prices against "Dólar Blue" for context in Argentina.
-- **Anti-Bot Protection:** Implements randomized delays, realistic headers, and simulated interaction (scroll) to avoid IP bans.
-- **Failure Management:** Implements a "2-Attempt Policy" for scraping failures (5-minute delay before retry).
-- **On-Demand Execution:** The process runs only when manually triggered, completing a full session (load URLs, scrape, compare, notify, close).
-
-## Technology Stack
--   **Language:** Python 3.10+
--   **Scraping:** Playwright + BeautifulSoup4.
--   **Database:** SQLite with SQLAlchemy ORM.
--   **Web Interface (Simple):** Streamlit.
--   **Data Visualization:** Pandas + Streamlit native charts (st.line_chart).
+- **Hybrid Architecture:** Uses Supabase (PostgreSQL) in the cloud and SQLite locally.
+- **Automated Scraping:** GitHub Actions updates prices daily at 08:00 AM (ART) automatically.
+- **Intelligent Grouping:** Compares the same product across different stores in a unified view.
+- **Smart Analysis:** Detects "Inflated Prices" vs "Real Opportunities" using 30-day medians and trend arrows.
+- **Ahorro Visual:** Muestra la rebaja exacta en monto fijo ($) y porcentaje (%) frente al último registro.
+- **Anti-Bot Protection:** Playwright with randomized delays, human-like headers, and simulated interaction.
 
 ## Completed Tasks ✅
-1.  **Project Structure:** Base directory structure created (`src/`, `data/`, etc.).
-2.  **Environment Setup:** Virtual environment created and dependencies installed (`requirements.txt`).
-3.  **Database Implementation:** Models defined (`models.py`) and manager created (`db_manager.py`) with SQLAlchemy.
-4.  **FullH4rd Scraper:** Initial implementation and subsequent update with anti-bot protection (delays, headers, scroll).
-5.  **Compragamer Scraper:** Implementation of a robust scraper for SPA (Single Page Application) using Playwright + BeautifulSoup.
-6.  **Dólar Blue Logic:** Implemented in `dolar_utils.py` using Bluelytics API.
-7.  **Skill System:** Created and installed the `scraper-architect` skill to standardize the creation of future scrapers.
-8.  **Advanced Analysis Engine:**
-    *   Trend detection (green/red arrows) based on previous price.
-    *   30-day median calculation to detect "Inflated Prices" (I > 1.10).
-    *   "Real Opportunity" indicator (Price < Median * 0.95).
-9.  **UI Redesign:** Dashboard updated with Quick Filters (All, Opportunities, Minimums, Inflated).
-10. **Usability:** Created `RUN_MONITOR.bat` for one-click execution without terminal commands.
-
-## Building and Running
--   **Build Command:** `pip install -r requirements.txt`
--   **Run Command:** Double-click `RUN_MONITOR.bat` (or `streamlit run src/main.py`)
--   **Test Command:** `.venv\Scripts\python.exe .gemini\skills\scraper-architect\scripts\test_new_scraper.py <path_to_scraper> <url>`
+1.  **Multi-Site Scrapers:** FullH4rd (CSS), Compragamer (SPA/Tailwind), and Diamond Computacion (JSON-LD) fully implemented.
+2.  **Cloud Migration:** Database migrated to Supabase; deployment ready for Streamlit Cloud.
+3.  **Automation:** GitHub Actions workflow (`daily_update.yml`) configured for hands-free updates.
+4.  **Data Modeling:** Added `group_name` and `category` to allow multi-store comparison and organization.
+5.  **Advanced UI:** 
+    *   Dashboard grouped by Category and Product.
+    *   Price trend details showing savings/increases in $ and %.
+    *   Quick filters (Todos, Subió, Bajó).
+6.  **Reliability:** 
+    *   Playwright auto-installation logic for cloud environments.
+    *   Unit tests for price cleaning and Dólar Blue logic (`tests/test_logic.py`).
+7.  **Skill System:** Created `scraper-architect` skill to standardize future expansions.
 
 ## Recommended Next Steps
-1.  **Implement DiamondSystem Scraper:** Add support for the third target site following the `scraper-architect` standards.
-2.  **Notification System:** Implement the logic to detect price drops (2% threshold) and show alerts in the UI.
-3.  **Grouping & Comparison:** Implement a "Common Product Name" or "Group ID" to compare the same product across different stores (FullH4rd vs Compragamer) in the same view.
-4.  **Tagging/Categories:** Enable a tagging system (e.g., "Monitor", "GPU", "SSD") to filter the dashboard by product type.
-5.  **Enhanced Price Drop Metrics:** When a price drops (even if not a minimum), display the exact reduction amount and percentage (e.g., "-$5,000 | -12%").
-6.  **Full Localization:** Translate all UI labels and messages to Spanish for consistency.
-7.  **Search Feature:** Implement "Product Mapping" to allow searching by keyword across sites instead of only by direct URL.
+1.  **Notification System:** Implement alerts (Discord/Telegram/Email) when a price drops below a specific threshold (e.g., > 3%).
+2.  **Search Feature:** Implement "Product Mapping" to search by keyword across all sites and add results with one click.
+3.  **Full Localization:** Translate the remaining English UI labels (Sidebar, metric names) to Spanish.
+4.  **Export Feature:** Add a button to export price history to CSV or Excel for custom analysis.
+5.  **Inflation Analysis:** Calculate prices in "Dólar Blue" (historical) to see if a product is actually getting cheaper in hard currency.
+
+## Building and Running
+-   **Local Run:** Double-click `RUN_MONITOR.bat`.
+-   **Cloud Deployment:** Automatic via GitHub push to Streamlit Cloud.
+-   **Manual Update:** GitHub Actions -> "Daily Price Update" -> Run Workflow.
