@@ -6,3 +6,4 @@ matplotlib
 requests
 pandas
 nest_asyncio
+psycopg2-binary

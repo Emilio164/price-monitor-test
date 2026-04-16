@@ -6,7 +6,12 @@ import os
 
 # Default path relative to project root
 DEFAULT_DB_PATH = os.path.join("data", "price_monitor.db")
-DB_URL = f"sqlite:///{DEFAULT_DB_PATH}"
+# Prioritize environment variable (for Cloud) over local SQLite
+DB_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DEFAULT_DB_PATH}")
+
+# Fix for Heroku/Cloud providers that use 'postgres://' instead of 'postgresql://'
+if DB_URL and DB_URL.startswith("postgres://"):
+    DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
 
 class DatabaseManager:
     def __init__(self, db_url=DB_URL):
