@@ -75,13 +75,15 @@ def run_scraper(url):
         st.error(f"Error scraping URL: {e}")
         return None
 
-def save_to_db(product_data):
+def save_to_db(product_data, group_name, category):
     try:
         # 1. Add/Get product
         new_prod = db_manager.add_product(
             name=product_data['name'],
             url=product_data['url'],
-            store=product_data['store']
+            store=product_data['store'],
+            group_name=group_name,
+            category=category
         )
         # 2. Add price entry
         db_manager.add_price_entry(
@@ -219,62 +221,75 @@ if page == "Dashboard":
             st.warning(f"No hay productos que coincidan con el filtro '{filter_choice}'.")
         else:
             st.subheader(f"Mostrando: {filter_choice}")
-            
-            # Headers de la tabla
-            h1, h2, h3, h4, h5 = st.columns([2, 1, 1, 1, 0.5])
-            h1.write("**Producto**")
-            h2.write("**Mínimo**")
-            h3.write("**Precio Actual**")
-            h4.write("**Estado/Mediana**")
-            h5.write("")
             st.divider()
 
-            for prod, curr, prev, median, is_min, is_inflated, is_opportunity in display_list:
-                col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 0.5])
+            # Organizar datos por Categoría -> Grupo
+            categories = sorted(list(set([x[0].category for x in display_list if x[0].category])))
+            
+            for cat in categories:
+                st.header(f"📂 {cat}")
+                cat_items = [x for x in display_list if x[0].category == cat]
                 
-                with col1:
-                    st.write(f"**{prod.name}**")
-                    st.caption(f"{prod.store} | [Link]({prod.url})")
+                # Agrupar por Nombre de Grupo dentro de la categoría
+                groups = sorted(list(set([x[0].group_name for x in cat_items if x[0].group_name])))
                 
-                with col2:
-                    st.write(f"${prod.min_price:,.2f}" if prod.min_price else "N/A")
-                    if is_min:
-                        st.markdown(":sparkles: **NUEVO MÍNIMO**")
-                
-                with col3:
-                    # Indicador de tendencia
-                    trend_icon = "-"
-                    trend_color = "gray"
-                    if prev > 0:
-                        if curr < prev:
-                            trend_icon = "↓"
-                            trend_color = "green"
-                        elif curr > prev:
-                            trend_icon = "↑"
-                            trend_color = "red"
-                    
-                    st.markdown(f"### ${curr:,.2f}")
-                    st.markdown(f"<span style='color:{trend_color}; font-size: 20px;'>{trend_icon}</span> (vs anterior)", unsafe_allow_html=True)
-                
-                with col4:
-                    if is_inflated:
-                        st.error("🚩 PRECIO INFLADO")
-                    elif is_opportunity:
-                        st.success("✅ OPORTUNIDAD REAL")
-                    elif is_min:
-                        st.info("💎 PRECIO BAJO")
-                    else:
-                        st.write("Estable")
-                    
-                    if median > 0:
-                        st.caption(f"Mediana (30d): ${median:,.2f}")
-                
-                with col5:
-                    if st.button("🗑️", key=f"del_{prod.id}", help="Delete Product"):
-                        if db_manager.delete_product(prod.id):
-                            st.success(f"Deleted {prod.name}")
-                            st.rerun()
-                st.divider()
+                for group in groups:
+                    with st.expander(f"📦 {group}", expanded=True):
+                        group_items = [x for x in cat_items if x[0].group_name == group]
+                        
+                        # Headers de la tabla interna
+                        h1, h2, h3, h4, h5 = st.columns([2, 1, 1, 1, 0.5])
+                        h1.write("**Tienda / Enlace**")
+                        h2.write("**Mínimo**")
+                        h3.write("**Precio Actual**")
+                        h4.write("**Análisis**")
+                        h5.write("")
+                        st.divider()
+
+                        for prod, curr, prev, median, is_min, is_inflated, is_opportunity in group_items:
+                            col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 0.5])
+                            
+                            with col1:
+                                st.write(f"**{prod.store}**")
+                                st.caption(f"[Ir al sitio]({prod.url})")
+                                st.caption(f"_{prod.name}_")
+                            
+                            with col2:
+                                st.write(f"${prod.min_price:,.2f}" if prod.min_price else "N/A")
+                                if is_min:
+                                    st.markdown(":sparkles: **MÍNIMO**")
+                            
+                            with col3:
+                                trend_icon = "-"
+                                trend_color = "gray"
+                                if prev > 0:
+                                    if curr < prev:
+                                        trend_icon = "↓"
+                                        trend_color = "green"
+                                    elif curr > prev:
+                                        trend_icon = "↑"
+                                        trend_color = "red"
+                                
+                                st.markdown(f"#### ${curr:,.2f}")
+                                st.markdown(f"<span style='color:{trend_color}; font-size: 18px;'>{trend_icon}</span> (vs anterior)", unsafe_allow_html=True)
+                            
+                            with col4:
+                                if is_inflated:
+                                    st.error("🚩 INFLADO")
+                                elif is_opportunity:
+                                    st.success("✅ OFERTA")
+                                else:
+                                    st.write("Estable")
+                                
+                                if median > 0:
+                                    st.caption(f"Mediana: ${median:,.2f}")
+                            
+                            with col5:
+                                if st.button("🗑️", key=f"del_{prod.id}", help="Delete Product"):
+                                    if db_manager.delete_product(prod.id):
+                                        st.success(f"Deleted")
+                                        st.rerun()
+                            st.divider()
         
 elif page == "Add Product":
     st.header("➕ Add New Product to Track")
@@ -289,15 +304,31 @@ elif page == "Add Product":
     if st.session_state.scraped_product:
         product = st.session_state.scraped_product
         st.subheader("Product Details:")
-        st.write(f"**Name:** {product.get('name', 'N/A')}")
-        st.write(f"**Price:** ${product.get('price', 0.0):,.2f}")
-        st.write(f"**Status:** {'In Stock' if not product.get('is_out_of_stock', True) else 'Out of Stock'}")
-        st.write(f"**Store:** {product.get('store', 'N/A')}")
         
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write(f"**Name:** {product.get('name', 'N/A')}")
+            st.write(f"**Price:** ${product.get('price', 0.0):,.2f}")
+            st.write(f"**Store:** {product.get('store', 'N/A')}")
+        
+        with col2:
+            # Obtener grupos y categorías existentes para sugerencias
+            existing_products = db_manager.get_all_products()
+            existing_groups = sorted(list(set([p.group_name for p in existing_products if p.group_name])))
+            existing_cats = sorted(list(set([p.category for p in existing_products if p.category])))
+            
+            group_name = st.selectbox("Assign to Group (Existing)", options=["New Group..."] + existing_groups)
+            if group_name == "New Group...":
+                group_name = st.text_input("New Group Name", value=product.get('name', ''))
+            
+            category = st.selectbox("Category (Existing)", options=["New Category..."] + existing_cats)
+            if category == "New Category...":
+                category = st.text_input("New Category Name", value="General")
+
         # Add to tracked products logic
         if st.button("Confirm and Start Tracking", key="save_to_db_button"):
-            if save_to_db(product):
-                st.success(f"'{product.get('name', 'Product')}' is now being tracked!")
+            if save_to_db(product, group_name, category):
+                st.success(f"'{group_name}' ({product.get('store')}) is now being tracked!")
                 st.session_state.scraped_product = None
                 st.rerun()
         

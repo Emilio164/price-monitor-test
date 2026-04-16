@@ -8,7 +8,8 @@ class Product(Base):
     __tablename__ = 'products'
     
     id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False) # Nombre específico de la tienda
+    group_name = Column(String, nullable=True) # Nombre común para agrupamiento
     url = Column(String, unique=True, nullable=False)
     store = Column(String, nullable=False)
     category = Column(String)

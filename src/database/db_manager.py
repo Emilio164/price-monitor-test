@@ -29,7 +29,7 @@ class DatabaseManager:
     def get_session(self):
         return self.SessionLocal()
 
-    def add_product(self, name, url, store, category=None):
+    def add_product(self, name, url, store, group_name=None, category=None):
         session = self.get_session()
         try:
             # Check if product already exists
@@ -39,6 +39,7 @@ class DatabaseManager:
             
             new_product = Product(
                 name=name,
+                group_name=group_name,
                 url=url,
                 store=store,
                 category=category
