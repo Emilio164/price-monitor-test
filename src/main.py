@@ -30,6 +30,7 @@ if os.environ.get("DATABASE_URL"): # Simple check to see if we are in Cloud/Prod
 from database.db_manager import DatabaseManager
 from scrapers.fullh4rd_scraper import FullH4rdScraper
 from scrapers.compragamer_scraper import CompragamerScraper
+from scrapers.diamond_scraper import DiamondScraper
 from logic.dolar_utils import get_dolar_blue
 
 # Apply nest_asyncio to allow nested loops in Streamlit
@@ -63,8 +64,10 @@ def run_scraper(url):
         scraper = FullH4rdScraper(url)
     elif "compragamer.com" in url:
         scraper = CompragamerScraper(url)
+    elif "diamondcomputacion.com.ar" in url:
+        scraper = DiamondScraper(url)
     else:
-        st.warning("Currently, only FullH4rd and Compragamer URLs are supported.")
+        st.warning("Currently, only FullH4rd, Compragamer and DiamondSystem URLs are supported.")
         return None
 
     try:
