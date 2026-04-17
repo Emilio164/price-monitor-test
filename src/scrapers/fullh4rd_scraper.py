@@ -1,7 +1,7 @@
 import asyncio
 from playwright.async_api import async_playwright, Playwright, Browser, Page
 from bs4 import BeautifulSoup
-from .base_scraper import BaseScraper
+from .base_scraper import BaseScraper, ScrapingBlockException
 import re
 import os
 import random
@@ -32,8 +32,14 @@ class FullH4rdScraper(BaseScraper):
                 # Delay inicial aleatorio para simular reacción humana
                 await asyncio.sleep(random.uniform(1.0, 3.0))
                 
-                await page.goto(self.url, wait_until="networkidle", timeout=120000)
+                response = await page.goto(self.url, wait_until="networkidle", timeout=120000)
                 
+                # --- NUEVA DETECCIÓN DE BLOQUEOS ---
+                content = await page.content()
+                status = response.status if response else 200
+                self.check_for_blocks(content, status)
+                # ----------------------------------
+
                 # Scroll simulado para activar lazy-loading
                 await page.mouse.wheel(0, 500)
                 await asyncio.sleep(random.uniform(0.5, 1.5))
@@ -79,8 +85,19 @@ class FullH4rdScraper(BaseScraper):
                     'url': self.url
                 }
 
+            except ScrapingBlockException as be:
+                print(f"🛑 BLOQUEO en {self.store_name}: {be}")
+                try:
+                    content = await page.content()
+                    self.save_debug_html(content, "blocked")
+                except: pass
+                raise be
             except Exception as e:
-                print(f"ERROR: {e}")
+                print(f"❌ ERROR en {self.store_name}: {e}")
+                try:
+                    content = await page.content()
+                    self.save_debug_html(content, "error")
+                except: pass
                 raise e
             finally:
                 await context.close()

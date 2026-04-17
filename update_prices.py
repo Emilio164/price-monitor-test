@@ -9,7 +9,26 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from src.database.db_manager import DatabaseManager
 from src.scrapers.fullh4rd_scraper import FullH4rdScraper
 from src.scrapers.compragamer_scraper import CompragamerScraper
+from src.scrapers.diamond_scraper import DiamondScraper # Importación arriba
 from src.logic.notifications import send_discord_alert
+
+# --- CONFIGURACIÓN ESCALABLE ---
+# Si agregas una tienda nueva, solo la sumas aquí:
+SCRAPER_CLASSES = {
+    "FullH4rd": FullH4rdScraper,
+    "Compragamer": CompragamerScraper,
+    "DiamondSystem": DiamondScraper,
+    # "NuevaTienda": NuevaTiendaScraper,
+}
+
+# Lista de User-Agents para rotar y evitar detección
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.60"
+]
 
 async def update_all_prices():
     db_manager = DatabaseManager()
@@ -20,27 +39,39 @@ async def update_all_prices():
         print("No hay productos para actualizar.")
         return
 
-    print(f"Iniciando actualización de {len(products)} productos...")
+    # 1. Delay inicial aleatorio (0 a 30 min)
+    initial_delay = random.uniform(0, 1800)
+    print(f"⏰ Espera inicial aleatoria: {initial_delay/60:.1f} minutos...")
+    await asyncio.sleep(initial_delay)
+
+    # 2. Aleatoriedad de productos
+    random.shuffle(products)
+    print(f"🚀 Iniciando actualización de {len(products)} productos en orden aleatorio...")
     
     for i, product in enumerate(products):
-        # Delay aleatorio para evitar baneos
         if i > 0:
-            delay = random.uniform(5.0, 10.0)
-            print(f"Esperando {delay:.1f}s...")
+            delay = random.uniform(10.0, 25.0)
+            print(f"⏳ Esperando {delay:.1f}s antes del siguiente producto...")
             await asyncio.sleep(delay)
         
         print(f"Procesando: {product.name} ({product.store})...")
         
-        scraper = None
-        if product.store == "FullH4rd":
-            scraper = FullH4rdScraper(product.url)
-        elif product.store == "Compragamer":
-            scraper = CompragamerScraper(product.url)
+        # --- LÓGICA ESCALABLE DE SCRAPERS ---
+        scraper_class = SCRAPER_CLASSES.get(product.store)
+        if not scraper_class:
+            print(f"⚠️ No hay scraper configurado para la tienda: {product.store}")
+            continue
+            
+        scraper = scraper_class(product.url)
+        # ------------------------------------
+
+        success = False
+        max_retries = 2
         
-        if scraper:
+        for attempt in range(max_retries + 1):
             try:
-                # Obtener precio anterior antes de actualizar
-                curr_before, prev_before = db_manager.get_trend_data(product.id)
+                # Obtener precio anterior
+                curr_before, _ = db_manager.get_trend_data(product.id)
                 
                 scraped_data = await scraper.scrape()
                 new_price = scraped_data['price']
@@ -52,7 +83,7 @@ async def update_all_prices():
                 )
                 print(f"✅ Actualizado: ${new_price:,.2f}")
 
-                # Verificar si hay que enviar alerta a Discord (mínimo 2% de rebaja)
+                # Alerta Discord (mínimo 2% de rebaja)
                 if curr_before > 0 and new_price < curr_before:
                     diff_percent = ((curr_before - new_price) / curr_before) * 100
                     if diff_percent >= 2.0:
@@ -63,8 +94,15 @@ async def update_all_prices():
                             new_price=new_price,
                             url=product.url
                         )
+                success = True
+                break 
             except Exception as e:
-                print(f"❌ Error en {product.name}: {e}")
+                if attempt < max_retries:
+                    wait_retry = random.uniform(15, 30)
+                    print(f"⚠️ Intento {attempt + 1} falló para {product.name}. Reintentando en {wait_retry:.1f}s... Error: {e}")
+                    await asyncio.sleep(wait_retry)
+                else:
+                    print(f"❌ Error persistente en {product.name} tras {max_retries} reintentos: {e}")
     
     print("Actualización completa.")
 

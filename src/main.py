@@ -157,8 +157,8 @@ st.set_page_config(page_title="Price Monitor", layout="wide")
 st.title("🔍 Multi-Site Price Monitor")
 
 # --- Sidebar Navigation ---
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Dashboard", "Add Product", "Price History"])
+st.sidebar.title("Navegación")
+page = st.sidebar.radio("Ir a", ["Panel de Control", "Agregar Producto", "Historial de Precios"])
 
 # --- Dólar Blue Display ---
 if st.session_state.dolar_blue_data:
@@ -171,31 +171,45 @@ if st.session_state.dolar_blue_data:
 else:
     st.sidebar.markdown(f"---")
     st.sidebar.subheader("🇦🇷 Dólar Blue")
-    st.sidebar.warning("Dólar Blue data unavailable.")
+    st.sidebar.warning("Datos del Dólar Blue no disponibles.")
 
 
 # --- Page Content ---
-if page == "Dashboard":
-    st.header("📊 Tracked Products")
+if page == "Panel de Control":
+    st.header("📊 Productos Monitoreados")
     
     # --- Quick Filters ---
     st.subheader("Filtros Rápidos")
+    
+    # Inicializar estado de filtro si no existe
+    if 'active_filter' not in st.session_state:
+        st.session_state.active_filter = "Todos"
+        
     col_f1, col_f2, col_f3, col_empty = st.columns([1, 1, 1, 1])
-    filter_choice = "Todos"
-    if col_f1.button("🏠 Todos", use_container_width=True): filter_choice = "Todos"
-    if col_f2.button("↑ Subió de precio", use_container_width=True): filter_choice = "Subio"
-    if col_f3.button("↓ Bajó de precio", use_container_width=True): filter_choice = "Bajo"
+    
+    # Usar botones que cambian el estado
+    if col_f1.button("🏠 Todos", use_container_width=True, type="primary" if st.session_state.active_filter == "Todos" else "secondary"):
+        st.session_state.active_filter = "Todos"
+        st.rerun()
+    if col_f2.button("↑ Subió de precio", use_container_width=True, type="primary" if st.session_state.active_filter == "Subio" else "secondary"):
+        st.session_state.active_filter = "Subio"
+        st.rerun()
+    if col_f3.button("↓ Bajó de precio", use_container_width=True, type="primary" if st.session_state.active_filter == "Bajo" else "secondary"):
+        st.session_state.active_filter = "Bajo"
+        st.rerun()
+
+    filter_choice = st.session_state.active_filter
 
     col_header, col_btn = st.columns([3, 0.5])
     with col_btn:
-        if st.button("🔄", use_container_width=True, help="Update All Prices"):
+        if st.button("🔄", use_container_width=True, help="Actualizar todos los precios"):
             asyncio.run(update_all_prices())
 
     # Load products from DB
     tracked_products = db_manager.get_all_products()
     
     if not tracked_products:
-        st.info("No products tracked yet. Go to 'Add Product' to start.")
+        st.info("Aún no hay productos monitoreados. Ve a 'Agregar Producto' para empezar.")
     else:
         # Filtrado de productos según selección
         display_list = []
@@ -221,9 +235,9 @@ if page == "Dashboard":
                 display_list.append((prod, curr, prev, median, is_min, is_inflated, is_opportunity))
 
         if not display_list:
-            st.warning(f"No hay productos que coincidan con el filtro '{filter_choice}'.")
+            st.warning(f"No hay productos que coincidan con el filtro seleccionado.")
         else:
-            st.subheader(f"Mostrando: {filter_choice}")
+            # Eliminado: st.subheader(f"Mostrando: {filter_choice}")
             st.divider()
 
             # Organizar datos por Categoría -> Grupo
@@ -295,31 +309,31 @@ if page == "Dashboard":
                                     st.caption(f"Mediana: ${median:,.2f}")
                             
                             with col5:
-                                if st.button("🗑️", key=f"del_{prod.id}", help="Delete Product"):
+                                if st.button("🗑️", key=f"del_{prod.id}", help="Eliminar Producto"):
                                     if db_manager.delete_product(prod.id):
-                                        st.success(f"Deleted")
+                                        st.success(f"Eliminado")
                                         st.rerun()
                             st.divider()
         
-elif page == "Add Product":
-    st.header("➕ Add New Product to Track")
-    url = st.text_input("Product URL", key="product_url_input")
+elif page == "Agregar Producto":
+    st.header("➕ Agregar Nuevo Producto para Monitorear")
+    url = st.text_input("URL del Producto", key="product_url_input")
     
-    if st.button("Analyze URL", key="analyze_url_button"):
+    if st.button("Analizar URL", key="analyze_url_button"):
         if url:
-            st.info(f"Analyzing: {url}")
+            st.info(f"Analizando: {url}")
             run_scraper(url) 
 
     # Display scraped product details after analysis
     if st.session_state.scraped_product:
         product = st.session_state.scraped_product
-        st.subheader("Product Details:")
+        st.subheader("Detalles del Producto:")
         
         col1, col2 = st.columns(2)
         with col1:
-            st.write(f"**Name:** {product.get('name', 'N/A')}")
-            st.write(f"**Price:** ${product.get('price', 0.0):,.2f}")
-            st.write(f"**Store:** {product.get('store', 'N/A')}")
+            st.write(f"**Nombre:** {product.get('name', 'N/A')}")
+            st.write(f"**Precio:** ${product.get('price', 0.0):,.2f}")
+            st.write(f"**Tienda:** {product.get('store', 'N/A')}")
         
         with col2:
             # Obtener grupos y categorías existentes para sugerencias
@@ -327,65 +341,65 @@ elif page == "Add Product":
             existing_groups = sorted(list(set([p.group_name for p in existing_products if p.group_name])))
             existing_cats = sorted(list(set([p.category for p in existing_products if p.category])))
             
-            group_name = st.selectbox("Assign to Group (Existing)", options=["New Group..."] + existing_groups)
-            if group_name == "New Group...":
-                group_name = st.text_input("New Group Name", value=product.get('name', ''))
+            group_name = st.selectbox("Asignar a Grupo (Existente)", options=["Nuevo Grupo..."] + existing_groups)
+            if group_name == "Nuevo Grupo...":
+                group_name = st.text_input("Nombre del Nuevo Grupo", value=product.get('name', ''))
             
-            category = st.selectbox("Category (Existing)", options=["New Category..."] + existing_cats)
-            if category == "New Category...":
-                category = st.text_input("New Category Name", value="General")
+            category = st.selectbox("Categoría (Existente)", options=["Nueva Categoría..."] + existing_cats)
+            if category == "Nueva Categoría...":
+                category = st.text_input("Nombre de la Nueva Categoría", value="General")
 
         # Add to tracked products logic
-        if st.button("Confirm and Start Tracking", key="save_to_db_button"):
+        if st.button("Confirmar e Iniciar Monitoreo", key="save_to_db_button"):
             if save_to_db(product, group_name, category):
-                st.success(f"'{group_name}' ({product.get('store')}) is now being tracked!")
+                st.success(f"¡'{group_name}' ({product.get('store')}) ahora está siendo monitoreado!")
                 st.session_state.scraped_product = None
                 st.rerun()
         
-        if st.button("Cancel", key="clear_scraped_product"):
+        if st.button("Cancelar", key="clear_scraped_product"):
             st.session_state.scraped_product = None
             st.rerun()
 
-elif page == "Price History":
-    st.header("📈 Price History Graphs")
+elif page == "Historial de Precios":
+    st.header("📈 Historial de Precios")
     
     # Load products for selection
     products = db_manager.get_all_products()
     
     if not products:
-        st.info("No products tracked yet. Add some products first to see their history.")
+        st.info("Aún no hay productos monitoreados. Agrega algunos primero para ver su historial.")
     else:
         # Create a dictionary for selection (name -> id)
         product_options = {f"{p.name} ({p.store})": p.id for p in products}
-        selected_product_name = st.selectbox("Select a product to view its history:", options=list(product_options.keys()))
+        selected_product_name = st.selectbox("Selecciona un producto para ver su historial:", options=list(product_options.keys()))
         
         if selected_product_name:
             product_id = product_options[selected_product_name]
             history = db_manager.get_product_history(product_id)
             
             if not history:
-                st.warning("No price history found for this product.")
+                st.warning("No se encontró historial de precios para este producto.")
             else:
                 # Prepare data for the chart using pandas
                 data = {
-                    "Timestamp": [h.timestamp for h in history],
-                    "Price": [h.price for h in history]
+                    "Fecha": [h.timestamp for h in history],
+                    "Precio": [h.price for h in history]
                 }
                 df = pd.DataFrame(data)
-                df.set_index("Timestamp", inplace=True)
+                df.set_index("Fecha", inplace=True)
                 
                 # Summary metrics
                 last_price = history[-1].price
                 min_price = min(h.price for h in history if h.price > 0)
                 
                 col1, col2 = st.columns(2)
-                col1.metric("Current Price", f"${last_price:,.2f}")
-                col2.metric("Historical Min", f"${min_price:,.2f}")
+                col1.metric("Precio Actual", f"${last_price:,.2f}")
+                col2.metric("Mínimo Histórico", f"${min_price:,.2f}")
                 
                 # Plotting
-                st.subheader("Price Over Time")
+                st.subheader("Evolución de Precio")
                 st.line_chart(df)
                 
                 # Show raw data in an expander
-                with st.expander("View Raw History Data"):
+                with st.expander("Ver Datos Crudos del Historial"):
                     st.table(df)
