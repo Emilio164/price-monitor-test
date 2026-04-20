@@ -8,28 +8,41 @@ import random
 import json
 
 class DiamondScraper(BaseScraper):
-    def __init__(self, url: str):
-        super().__init__(url)
+    def __init__(self, url: str, user_agent: str = None):
+        super().__init__(url, user_agent)
         self.store_name = "DiamondSystem"
 
     async def scrape(self) -> dict:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
+            
+            # Setup context with enhanced stealth
+            viewport_width = random.randint(1280, 1920)
+            viewport_height = random.randint(720, 1080)
+            
             context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+                user_agent=self.user_agent,
+                viewport={'width': viewport_width, 'height': viewport_height},
                 extra_http_headers={
                     "Accept-Language": "es-AR,es;q=0.9,en-US;q=0.8,en;q=0.7",
-                    "Referer": "https://www.google.com/"
+                    "Referer": "https://www.google.com/search?q=" + self.store_name,
+                    "Sec-Ch-Ua": '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+                    "Sec-Ch-Ua-Mobile": "?0",
+                    "Sec-Ch-Ua-Platform": '"Windows"',
+                    "Sec-Fetch-Dest": "document",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "cross-site",
+                    "Upgrade-Insecure-Requests": "1"
                 }
             )
             page = await context.new_page()
 
             try:
                 # 1. Delay humano
-                await asyncio.sleep(random.uniform(1.0, 3.0))
+                await asyncio.sleep(random.uniform(2.0, 5.0))
                 
                 # 2. Navegar
-                response = await page.goto(self.url, wait_until="networkidle", timeout=60000)
+                response = await page.goto(self.url, wait_until="domcontentloaded", timeout=60000)
                 
                 # --- NUEVA DETECCIÓN DE BLOQUEOS ---
                 content = await page.content()
@@ -37,7 +50,15 @@ class DiamondScraper(BaseScraper):
                 self.check_for_blocks(content, status)
                 # ----------------------------------
 
+                # Simular interacción humana avanzada
+                await asyncio.sleep(random.uniform(1.5, 3.5))
+                for _ in range(random.randint(1, 3)):
+                    await page.mouse.move(random.randint(200, 700), random.randint(200, 500))
+                    await asyncio.sleep(random.uniform(0.3, 0.8))
+
                 # 3. Scroll y espera
+                await page.mouse.wheel(0, random.randint(300, 600))
+                await asyncio.sleep(2)
                 await page.mouse.wheel(0, 500)
                 await asyncio.sleep(2)
                 

@@ -56,13 +56,16 @@ async def update_all_prices():
         
         print(f"Procesando: {product.name} ({product.store})...")
         
+        # Seleccionar User-Agent aleatorio para este producto
+        ua = random.choice(USER_AGENTS)
+
         # --- LÓGICA ESCALABLE DE SCRAPERS ---
         scraper_class = SCRAPER_CLASSES.get(product.store)
         if not scraper_class:
             print(f"⚠️ No hay scraper configurado para la tienda: {product.store}")
             continue
             
-        scraper = scraper_class(product.url)
+        scraper = scraper_class(product.url, user_agent=ua)
         # ------------------------------------
 
         success = False

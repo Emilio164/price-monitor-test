@@ -9,9 +9,10 @@ class ScrapingBlockException(Exception):
     pass
 
 class BaseScraper(ABC):
-    def __init__(self, url: str):
+    def __init__(self, url: str, user_agent: str = None):
         self.url = url
         self.store_name = "Base"
+        self.user_agent = user_agent or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
 
     def save_debug_html(self, content: str, suffix: str = "error"):
         """
