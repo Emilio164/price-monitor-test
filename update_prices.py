@@ -72,11 +72,17 @@ async def update_all_prices():
             try:
                 # Obtener precio anterior
                 curr_before, _ = db_manager.get_trend_data(product.id)
-                
+
                 scraped_data = await scraper.scrape()
                 new_price = scraped_data['price']
-                
+
+                # --- NUEVA VALIDACIÓN ANTI-CERO ---
+                if new_price <= 0:
+                    raise ValueError(f"El precio obtenido es $0.00. Posible carga fallida o bloqueo no detectado.")
+                # ----------------------------------
+
                 db_manager.add_price_entry(
+
                     product_id=product.id,
                     price=new_price,
                     is_out_of_stock=scraped_data['is_out_of_stock']

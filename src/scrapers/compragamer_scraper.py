@@ -14,22 +14,34 @@ class CompragamerScraper(BaseScraper):
     async def scrape(self) -> dict:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
+            # Configuración de contexto con sigilo mejorado
+            viewport_width = random.randint(1280, 1920)
+            viewport_height = random.randint(720, 1080)
+            
             context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-                viewport={'width': 1920, 'height': 1080},
+                viewport={'width': viewport_width, 'height': viewport_height},
                 extra_http_headers={
                     "Accept-Language": "es-AR,es;q=0.9,en-US;q=0.8,en;q=0.7",
-                    "Referer": "https://www.google.com/"
+                    "Referer": "https://www.google.com/",
+                    "Sec-Ch-Ua": '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+                    "Sec-Ch-Ua-Mobile": "?0",
+                    "Sec-Ch-Ua-Platform": '"Windows"',
+                    "Sec-Fetch-Dest": "document",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "same-origin",
+                    "Sec-Fetch-User": "?1",
+                    "Upgrade-Insecure-Requests": "1"
                 }
             )
             page = await context.new_page()
 
             try:
                 # 1. Simular reacción humana: pequeña espera aleatoria antes de navegar
-                await asyncio.sleep(random.uniform(1.0, 3.0))
+                await asyncio.sleep(random.uniform(2.0, 5.0))
                 
                 # 2. Navegar con timeout extendido para sitios lentos
-                response = await page.goto(self.url, wait_until="networkidle", timeout=60000)
+                response = await page.goto(self.url, wait_until="domcontentloaded", timeout=60000)
                 
                 # --- NUEVA DETECCIÓN DE BLOQUEOS ---
                 content = await page.content()
@@ -38,6 +50,9 @@ class CompragamerScraper(BaseScraper):
                 # ----------------------------------
 
                 # 3. Simular lectura: pequeño scroll para activar contenido dinámico
+                await asyncio.sleep(random.uniform(2.0, 4.0)) # Espera a que cargue el JS
+                await page.mouse.wheel(0, random.randint(300, 700))
+                await asyncio.sleep(random.uniform(1.0, 2.0))
                 await page.mouse.wheel(0, 500)
                 await asyncio.sleep(random.uniform(1.0, 2.0))
                 

@@ -27,3 +27,11 @@ jobs:
           
       - name: Run price update
         run: python update_prices.py
+        
+      - name: Upload Debug HTML Logs
+        if: always() # Esto asegura que se suban los logs incluso si el script falla
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-html-logs
+          path: logs/debug_html/
+          retention-days: 7 # Se guardan por una semana
