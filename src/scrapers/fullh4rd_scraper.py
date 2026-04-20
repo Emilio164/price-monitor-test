@@ -37,11 +37,22 @@ class FullH4rdScraper(BaseScraper):
             
             page = await context.new_page()
 
+            # --- SCRIPT ANTI-DETECCIÓN ---
+            await page.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+            """)
+            # -----------------------------
+
             try:
                 # Delay inicial aleatorio para simular reacción humana
-                await asyncio.sleep(random.uniform(2.0, 5.0))
+                await asyncio.sleep(random.uniform(3.0, 7.0))
                 
-                response = await page.goto(self.url, wait_until="domcontentloaded", timeout=120000)
+                response = await page.goto(self.url, wait_until="commit", timeout=120000)
+                
+                # Espera extra para Cloudflare
+                await asyncio.sleep(random.uniform(5.0, 8.0))
                 
                 # --- NUEVA DETECCIÓN DE BLOQUEOS ---
                 content = await page.content()

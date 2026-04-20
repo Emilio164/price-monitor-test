@@ -36,12 +36,24 @@ class CompragamerScraper(BaseScraper):
             )
             page = await context.new_page()
 
+            # --- SCRIPT ANTI-DETECCIÓN ---
+            # Elimina el rastro de 'webdriver' que delata a Playwright
+            await page.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+            """)
+            # -----------------------------
+
             try:
-                # 1. Simular reacción humana: pequeña espera aleatoria antes de navegar
-                await asyncio.sleep(random.uniform(2.0, 5.0))
+                # 1. Simular reacción humana: espera larga inicial
+                await asyncio.sleep(random.uniform(3.0, 7.0))
                 
-                # 2. Navegar con timeout extendido para sitios lentos
-                response = await page.goto(self.url, wait_until="domcontentloaded", timeout=60000)
+                # 2. Navegar simulando venir de la Home
+                response = await page.goto(self.url, wait_until="commit", timeout=60000)
+                
+                # Espera extra para que Cloudflare decida si dejarnos pasar
+                await asyncio.sleep(random.uniform(5.0, 8.0))
                 
                 # --- NUEVA DETECCIÓN DE BLOQUEOS ---
                 content = await page.content()
