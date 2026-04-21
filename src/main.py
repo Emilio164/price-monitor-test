@@ -32,6 +32,10 @@ from scrapers.fullh4rd_scraper import FullH4rdScraper
 from scrapers.compragamer_scraper import CompragamerScraper
 from scrapers.diamond_scraper import DiamondScraper
 from logic.dolar_utils import get_dolar_blue
+from logic.matcher import ProductMatcher # NUEVA IMPORTACIÓN
+
+# Instanciar el matcher
+matcher = ProductMatcher()
 
 # Apply nest_asyncio to allow nested loops in Streamlit
 nest_asyncio.apply()
@@ -346,27 +350,56 @@ elif page == "Agregar Producto":
     # Display scraped product details after analysis
     if st.session_state.scraped_product:
         product = st.session_state.scraped_product
-        st.subheader("Detalles del Producto:")
+        st.subheader("Detalles del Producto Detectados:")
         
+        # --- LÓGICA DE SUGERENCIA AUTOMÁTICA ---
+        suggested_group = None
+        suggested_cat = "General"
+        match_confidence = 0
+        
+        existing_products = db_manager.get_all_products()
+        
+        for p in existing_products:
+            match_res = matcher.get_similarity_score(product['name'], p.name)
+            if match_res['is_match'] and match_res['score'] > match_confidence:
+                match_confidence = match_res['score']
+                suggested_group = p.group_name
+                suggested_cat = p.category
+
+        if suggested_group:
+            st.success(f"🔍 ¡Match automático! Sugerido el grupo: **{suggested_group}** (Confianza: {match_confidence*100:.0f}%)")
+        # ----------------------------------------
+
         col1, col2 = st.columns(2)
         with col1:
-            st.write(f"**Nombre:** {product.get('name', 'N/A')}")
+            st.write(f"**Nombre original:** {product.get('name', 'N/A')}")
             st.write(f"**Precio:** ${product.get('price', 0.0):,.2f}")
             st.write(f"**Tienda:** {product.get('store', 'N/A')}")
         
         with col2:
-            # Obtener grupos y categorías existentes para sugerencias
-            existing_products = db_manager.get_all_products()
             existing_groups = sorted(list(set([p.group_name for p in existing_products if p.group_name])))
             existing_cats = sorted(list(set([p.category for p in existing_products if p.category])))
             
-            group_name = st.selectbox("Asignar a Grupo (Existente)", options=["Nuevo Grupo..."] + existing_groups)
-            if group_name == "Nuevo Grupo...":
-                group_name = st.text_input("Nombre del Nuevo Grupo", value=product.get('name', ''))
+            # Pre-seleccionar si hubo match
+            default_group_idx = 0
+            if suggested_group in existing_groups:
+                default_group_idx = existing_groups.index(suggested_group) + 1
             
-            category = st.selectbox("Categoría (Existente)", options=["Nueva Categoría..."] + existing_cats)
-            if category == "Nueva Categoría...":
-                category = st.text_input("Nombre de la Nueva Categoría", value="General")
+            group_name_sel = st.selectbox("Asignar a Grupo", options=["Nuevo Grupo..."] + existing_groups, index=default_group_idx)
+            if group_name_sel == "Nuevo Grupo...":
+                group_name = st.text_input("Nombre del Nuevo Grupo", value=suggested_group if suggested_group else product.get('name', ''))
+            else:
+                group_name = group_name_sel
+            
+            default_cat_idx = 0
+            if suggested_cat in existing_cats:
+                default_cat_idx = existing_cats.index(suggested_cat) + 1
+
+            category_sel = st.selectbox("Categoría", options=["Nueva Categoría..."] + existing_cats, index=default_cat_idx)
+            if category_sel == "Nueva Categoría...":
+                category = st.text_input("Nombre de la Nueva Categoría", value=suggested_cat)
+            else:
+                category = category_sel
 
         # Add to tracked products logic
         if st.button("Confirmar e Iniciar Monitoreo", key="save_to_db_button"):
