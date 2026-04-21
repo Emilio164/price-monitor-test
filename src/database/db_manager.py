@@ -5,12 +5,13 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 
-# Cargar variables de entorno desde .env localmente
+# Cargar variables de entorno desde .env localmente (si existe)
 load_dotenv()
 
-# Default path relative to project root
-DEFAULT_DB_PATH = os.path.join("data", "price_monitor.db")
-# Prioritize environment variable (for Cloud) over local SQLite
+# Prioridad: 
+# 1. Variable de entorno del sistema (GitHub Secrets / Streamlit Cloud)
+# 2. Variable del archivo .env (Local)
+# 3. SQLite Local (Fallback final)
 DB_URL = os.environ.get("DATABASE_URL")
 
 if not DB_URL:

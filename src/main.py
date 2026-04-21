@@ -41,6 +41,22 @@ if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # --- Configuration ---
+# Lista de User-Agents COHERENTES (Chrome sobre Windows) para evitar detección
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+]
+
+# Diccionario de mapeo para escalabilidad: Dominio -> Clase de Scraper
+SCRAPER_MAPPING = {
+    "fullh4rd.com.ar": FullH4rdScraper,
+    "compragamer.com": CompragamerScraper,
+    "diamondcomputacion.com.ar": DiamondScraper
+}
+
 # Use session state for managing scraped data to avoid re-scraping on every interaction
 if 'scraped_product' not in st.session_state:
     st.session_state.scraped_product = None
@@ -56,26 +72,29 @@ db_manager.init_db() # Ensure tables are created
 # --- Helper functions ---
 def run_scraper(url):
     if not url:
-        st.error("Please enter a URL.")
+        st.error("Por favor, ingresa una URL.")
         return None
     
-    scraper = None
-    if "fullh4rd.com.ar" in url:
-        scraper = FullH4rdScraper(url)
-    elif "compragamer.com" in url:
-        scraper = CompragamerScraper(url)
-    elif "diamondcomputacion.com.ar" in url:
-        scraper = DiamondScraper(url)
-    else:
-        st.warning("Currently, only FullH4rd, Compragamer and DiamondSystem URLs are supported.")
+    # Lógica escalable: Buscar el scraper adecuado según el dominio en la URL
+    scraper_class = None
+    for domain, clazz in SCRAPER_MAPPING.items():
+        if domain in url:
+            scraper_class = clazz
+            break
+            
+    if not scraper_class:
+        st.warning("Actualmente, solo se admiten URLs de FullH4rd, Compragamer y DiamondSystem.")
         return None
 
     try:
+        # Usar un User-Agent aleatorio también al agregar manualmente
+        ua = random.choice(USER_AGENTS)
+        scraper = scraper_class(url, user_agent=ua)
         scraped_data = asyncio.run(scraper.scrape())
         st.session_state.scraped_product = scraped_data
         st.rerun()
     except Exception as e:
-        st.error(f"Error scraping URL: {e}")
+        st.error(f"Error al analizar la URL: {e}")
         return None
 
 def save_to_db(product_data, group_name, category):
