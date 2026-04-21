@@ -40,15 +40,16 @@ class BaseScraper(ABC):
         if status in [403, 429]:
             raise ScrapingBlockException(f"Acceso denegado (Status {status}) en {self.store_name}")
 
-        # 2. Verificar palabras clave de bloqueo en el HTML (case-insensitive)
+        # 2. Verificar palabras clave de bloqueo REAL en el HTML (case-insensitive)
+        # Evitamos 'captcha' a secas porque muchos sitios cargan scripts de captcha legalmente
         block_keywords = [
-            "captcha", 
-            "verify you are human", 
+            "g-recaptcha-response", 
             "access denied", 
-            "blocked", 
-            "challenge-running",
-            "checking your browser",
-            "permiso denegado"
+            "security challenge", 
+            "action requires verification",
+            "checking your browser before accessing",
+            "permiso denegado",
+            "ray id:" # Común en Cloudflare
         ]
         
         content_lower = content.lower()

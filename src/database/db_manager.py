@@ -3,11 +3,19 @@ from sqlalchemy.orm import sessionmaker
 from .models import Base, Product, PriceHistory
 from datetime import datetime
 import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env localmente
+load_dotenv()
 
 # Default path relative to project root
 DEFAULT_DB_PATH = os.path.join("data", "price_monitor.db")
 # Prioritize environment variable (for Cloud) over local SQLite
-DB_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DEFAULT_DB_PATH}")
+DB_URL = os.environ.get("DATABASE_URL")
+
+if not DB_URL:
+    # Si no hay variable de entorno, usar SQLite local
+    DB_URL = f"sqlite:///{DEFAULT_DB_PATH}"
 
 # Fix for Heroku/Cloud providers that use 'postgres://' instead of 'postgresql://'
 if DB_URL and DB_URL.startswith("postgres://"):

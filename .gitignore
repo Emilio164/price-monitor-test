@@ -1,2 +1,28 @@
-QA/jira_import.csv
-RUN_MONITOR.bat
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Secrets & Config
+.env
+
+# Database (Local)
+data/*.db
+!data/.gitkeep
+
+# Scraping & Debugging
+logs/
+playwright_traces/
+diamond_raw.html
+diamond_check.png
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
