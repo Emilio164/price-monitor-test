@@ -368,21 +368,6 @@ elif page == "Agregar Producto":
 
         if suggested_group:
             st.success(f"🔍 ¡Match automático! Sugerido el grupo: **{suggested_group}** (Confianza: {match_confidence*100:.0f}%)")
-        
-        # --- BLOQUE DE DIAGNÓSTICO (Solo para depuración) ---
-        with st.expander("🛠️ Ver Diagnóstico de Similitud (¿Por qué se sugiere o no?)"):
-            st.write("Comparando con productos existentes:")
-            diag_data = []
-            for p in existing_products:
-                m_res = matcher.get_similarity_score(product['name'], p.name)
-                diag_data.append({
-                    "Producto Existente": p.name,
-                    "Grupo": p.group_name,
-                    "Similitud": f"{m_res['score']*100:.0f}%",
-                    "¿Es Match?": "✅" if m_res['is_match'] else "❌"
-                })
-            st.table(diag_data)
-        # ----------------------------------------------------
 
         col1, col2 = st.columns(2)
         with col1:
@@ -450,6 +435,25 @@ elif page == "Historial de Precios":
                 data = {
                     "Fecha": [h.timestamp for h in history],
                     "Precio": [h.price for h in history]
+                }
+                df = pd.DataFrame(data)
+                df.set_index("Fecha", inplace=True)
+                
+                # Summary metrics
+                last_price = history[-1].price
+                min_price = min(h.price for h in history if h.price > 0)
+                
+                col1, col2 = st.columns(2)
+                col1.metric("Precio Actual", f"${last_price:,.2f}")
+                col2.metric("Mínimo Histórico", f"${min_price:,.2f}")
+                
+                # Plotting
+                st.subheader("Evolución de Precio")
+                st.line_chart(df)
+                
+                # Show raw data in an expander
+                with st.expander("Ver Datos Crudos del Historial"):
+                    st.table(df)
                 }
                 df = pd.DataFrame(data)
                 df.set_index("Fecha", inplace=True)
