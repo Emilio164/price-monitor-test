@@ -74,6 +74,37 @@ db_manager = DatabaseManager()
 db_manager.init_db() # Ensure tables are created
 
 # --- Helper functions ---
+@st.cache_data(ttl=600)
+def get_cached_products():
+    """Obtiene y procesa todos los productos de la DB con caché de 10 min."""
+    tracked_products = db_manager.get_all_products()
+    processed_list = []
+    for prod in tracked_products:
+        curr, prev = db_manager.get_trend_data(prod.id)
+        median = db_manager.get_median_price(prod.id)
+        
+        # Lógica de estados para filtros
+        has_up_trend = (prev > 0 and curr > prev)
+        has_down_trend = (prev > 0 and curr < prev)
+        
+        # Lógica de indicadores visuales
+        is_min = prod.last_price <= prod.min_price if prod.min_price else False
+        is_inflated = (prod.last_price / median > 1.10) if median > 0 else False
+        is_opportunity = (prod.last_price < median * 0.95) if median > 0 else False
+        
+        processed_list.append({
+            "prod": prod,
+            "curr": curr,
+            "prev": prev,
+            "median": median,
+            "is_min": is_min,
+            "is_inflated": is_inflated,
+            "is_opportunity": is_opportunity,
+            "has_up_trend": has_up_trend,
+            "has_down_trend": has_down_trend
+        })
+    return processed_list
+
 def run_scraper(url):
     if not url:
         st.error("Por favor, ingresa una URL.")
@@ -135,27 +166,43 @@ async def update_all_prices():
         # Human-like delay before scraping each product (except the first one)
         if i > 0:
             delay = random.uniform(2.0, 5.0)
-            status_text.text(f"Waiting {delay:.1f}s before updating {product.name} to avoid rate limiting...")
+            status_text.text(f"Esperando {delay:.1f}s antes de actualizar {product.name}...")
             await asyncio.sleep(delay)
         
-        status_text.text(f"Updating {product.name} ({product.store})...")
+        status_text.text(f"Actualizando {product.name} ({product.store})...")
         
-        scraper = None
-        if product.store == "FullH4rd":
-            scraper = FullH4rdScraper(product.url)
-        elif product.store == "Compragamer":
-            scraper = CompragamerScraper(product.url)
+        # Lógica escalable usando el mapeo centralizado
+        scraper_class = None
+        for domain, clazz in SCRAPER_MAPPING.items():
+            # Intentamos machear por el nombre de la tienda o dominio si estuviera guardado
+            if product.store.lower() in clazz.__name__.lower() or product.store == "DiamondSystem":
+                scraper_class = clazz
+                break
         
-        if scraper:
+        # Fallback manual para nombres exactos de DB si el bucle falla
+        if not scraper_class:
+            if product.store == "FullH4rd": scraper_class = FullH4rdScraper
+            elif product.store == "Compragamer": scraper_class = CompragamerScraper
+            elif product.store == "DiamondSystem": scraper_class = DiamondScraper
+        
+        if scraper_class:
             try:
+                # Pasar un UA aleatorio también en la actualización manual
+                ua = random.choice(USER_AGENTS)
+                scraper = scraper_class(product.url, user_agent=ua)
                 scraped_data = await scraper.scrape()
-                db_manager.add_price_entry(
-                    product_id=product.id,
-                    price=scraped_data['price'],
-                    is_out_of_stock=scraped_data['is_out_of_stock']
-                )
+                
+                # Validación Anti-Cero
+                if scraped_data['price'] > 0:
+                    db_manager.add_price_entry(
+                        product_id=product.id,
+                        price=scraped_data['price'],
+                        is_out_of_stock=scraped_data['is_out_of_stock']
+                    )
+                else:
+                    st.warning(f"No se pudo obtener precio para {product.name}")
             except Exception as e:
-                st.error(f"Failed to update {product.name}: {e}")
+                st.error(f"Error al actualizar {product.name}: {e}")
         
         progress_bar.progress((i + 1) / len(products))
     
@@ -226,36 +273,25 @@ if page == "Panel de Control":
     col_header, col_btn = st.columns([3, 0.5])
     with col_btn:
         if st.button("🔄", use_container_width=True, help="Actualizar todos los precios"):
+            st.cache_data.clear() # Limpiar caché para forzar lectura fresca
             asyncio.run(update_all_prices())
 
-    # Load products from DB
-    tracked_products = db_manager.get_all_products()
+    # Cargar productos procesados con Caché
+    processed_products = get_cached_products()
     
-    if not tracked_products:
+    if not processed_products:
         st.info("Aún no hay productos monitoreados. Ve a 'Agregar Producto' para empezar.")
     else:
         # Filtrado de productos según selección
         display_list = []
-        for prod in tracked_products:
-            curr, prev = db_manager.get_trend_data(prod.id)
-            median = db_manager.get_median_price(prod.id)
-            
-            # Lógica de estados para filtros
-            has_up_trend = (prev > 0 and curr > prev)
-            has_down_trend = (prev > 0 and curr < prev)
-            
-            # Lógica de indicadores visuales (se mantienen para info)
-            is_min = prod.last_price <= prod.min_price if prod.min_price else False
-            is_inflated = (prod.last_price / median > 1.10) if median > 0 else False
-            is_opportunity = (prod.last_price < median * 0.95) if median > 0 else False
-            
+        for item in processed_products:
             # Aplicar filtro
             if filter_choice == "Todos":
-                display_list.append((prod, curr, prev, median, is_min, is_inflated, is_opportunity))
-            elif filter_choice == "Subio" and has_up_trend:
-                display_list.append((prod, curr, prev, median, is_min, is_inflated, is_opportunity))
-            elif filter_choice == "Bajo" and has_down_trend:
-                display_list.append((prod, curr, prev, median, is_min, is_inflated, is_opportunity))
+                display_list.append(item)
+            elif filter_choice == "Subio" and item['has_up_trend']:
+                display_list.append(item)
+            elif filter_choice == "Bajo" and item['has_down_trend']:
+                display_list.append(item)
 
         if not display_list:
             st.warning(f"No hay productos que coincidan con el filtro seleccionado.")
@@ -264,18 +300,18 @@ if page == "Panel de Control":
             st.divider()
 
             # Organizar datos por Categoría -> Grupo
-            categories = sorted(list(set([x[0].category for x in display_list if x[0].category])))
+            categories = sorted(list(set([x['prod'].category for x in display_list if x['prod'].category])))
             
             for cat in categories:
                 st.header(f"📂 {cat}")
-                cat_items = [x for x in display_list if x[0].category == cat]
+                cat_items = [x for x in display_list if x['prod'].category == cat]
                 
                 # Agrupar por Nombre de Grupo dentro de la categoría
-                groups = sorted(list(set([x[0].group_name for x in cat_items if x[0].group_name])))
+                groups = sorted(list(set([x['prod'].group_name for x in cat_items if x['prod'].group_name])))
                 
                 for group in groups:
                     with st.expander(f"📦 {group}", expanded=True):
-                        group_items = [x for x in cat_items if x[0].group_name == group]
+                        group_items = [x for x in cat_items if x['prod'].group_name == group]
                         
                         # Headers de la tabla interna
                         h1, h2, h3, h4, h5 = st.columns([2, 1, 1, 1, 0.5])
@@ -289,7 +325,15 @@ if page == "Panel de Control":
                         st.markdown("<hr style='margin:0; padding:0;'>", unsafe_allow_html=True)
                         st.write("") # Pequeño espacio controlado
 
-                        for prod, curr, prev, median, is_min, is_inflated, is_opportunity in group_items:
+                        for item in group_items:
+                            prod = item['prod']
+                            curr = item['curr']
+                            prev = item['prev']
+                            median = item['median']
+                            is_min = item['is_min']
+                            is_inflated = item['is_inflated']
+                            is_opportunity = item['is_opportunity']
+
                             col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 0.5])
                             
                             with col1:

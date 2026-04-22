@@ -46,7 +46,10 @@ async def update_all_prices():
 
     # 2. Aleatoriedad de productos
     random.shuffle(products)
-    print(f"🚀 Iniciando actualización de {len(products)} productos en orden aleatorio...")
+    total_products = len(products)
+    success_count = 0
+    
+    print(f"🚀 Iniciando actualización de {total_products} productos en orden aleatorio...")
     
     for i, product in enumerate(products):
         if i > 0:
@@ -54,7 +57,7 @@ async def update_all_prices():
             print(f"⏳ Esperando {delay:.1f}s antes del siguiente producto...")
             await asyncio.sleep(delay)
         
-        print(f"Procesando: {product.name} ({product.store})...")
+        print(f"[{i+1}/{total_products}] Procesando: {product.name} ({product.store})...")
         
         # Seleccionar User-Agent aleatorio para este producto
         ua = random.choice(USER_AGENTS)
@@ -85,7 +88,6 @@ async def update_all_prices():
                 # ----------------------------------
 
                 db_manager.add_price_entry(
-
                     product_id=product.id,
                     price=new_price,
                     is_out_of_stock=scraped_data['is_out_of_stock']
@@ -104,6 +106,7 @@ async def update_all_prices():
                             url=product.url
                         )
                 success = True
+                success_count += 1
                 break 
             except Exception as e:
                 if attempt < max_retries:
@@ -113,7 +116,7 @@ async def update_all_prices():
                 else:
                     print(f"❌ Error persistente en {product.name} tras {max_retries} reintentos: {e}")
     
-    print("Actualización completa.")
+    print(f"\n✅ Actualización completa: {success_count}/{total_products} productos actualizados con éxito.")
 
 if __name__ == "__main__":
     asyncio.run(update_all_prices())
