@@ -9,6 +9,8 @@ __pycache__/
 venv/
 ENV/
 test_discord.py
+test_ram.py
+test_final_suite.py
 
 # Secrets & Config
 .env

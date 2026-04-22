@@ -5,58 +5,58 @@ from typing import Dict, Any, List, Set
 class ProductMatcher:
     def __init__(self):
         self.known_brands = [
-            "samsung", "lg", "viewsonic", "asus", "gigabyte", "msi", "corsair", 
+            "samsung", "lg", "viewsonic", "asus", "tuf", "gigabyte", "msi", "corsair", 
             "logitech", "kingston", "wd", "western digital", "crucial", "patriot",
-            "team", "razer", "hyperx", "redragon", "arctic", "sentey", "evga", "fury"
+            "team", "razer", "hyperx", "redragon", "arctic", "sentey", "evga", "fury", "beast", "harrow"
         ]
         
-        self.unit_map = {
-            r'"|pul|pulgadas|in': "pulg",
-            r'gramos|gr|g(?!\w)': "g",
-            r'hz|hertz': "hz",
-            r'watts|w(?!\w)': "w",
-            r'terabytes|tb': "tb",
-            r'gigabytes|gb|gigas|gb': "gb",
-            r'megabytes|mb': "mb",
-            r'mhz': "mhz",
-            r'va|voltios': "v"
+        # Mapeo de sinónimos para unificar conceptos
+        self.synonyms = {
+            "wireless": "inalambrico",
+            "bluetooth": "bt",
+            "power supply": "fuente",
+            "solid state drive": "ssd",
+            "display": "monitor"
         }
-        
-        self.MATCH_THRESHOLD = 0.85
+
+        self.units = ["pulg", "g", "hz", "w", "tb", "gb", "mb", "mhz", "v"]
+        self.MATCH_THRESHOLD = 0.75 
 
     def normalize_text(self, text: str) -> str:
         if not text: return ""
         text = text.lower()
         text = "".join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
         
-        # Normalización especial para RAM: DDR4, DDR5
-        text = re.sub(r'ddr\s*(\d)', r' ddr\1 ', text)
+        # 1. Normalizar sinónimos
+        for word, syn in self.synonyms.items():
+            text = text.replace(word, syn)
+
+        text = text.replace('"', ' pulg ')
+        text = re.sub(r'(ddr)\s*(\d)', r' \1 \2 ', text)
         
-        for pattern, replacement in self.unit_map.items():
-            text = re.sub(pattern, " " + replacement + " ", text)
+        # 2. Normalizar unidades (evitar que 5w en un código de modelo se capture si es < 10)
+        # Solo capturamos unidades si el número tiene 2 o más cifras o si es g/pulg
+        text = re.sub(r'(\d+)\s*(mhz|hz|gb|tb|w|g|mb|v)', r' \1 \2 ', text)
         
         text = re.sub(r'[^a-z0-9\s]', ' ', text)
         return re.sub(r'\s+', ' ', text).strip()
 
     def extract_specs(self, normalized_name: str) -> Dict[str, str]:
         specs = {}
-        # 1. Unidades estándar (Número + Unidad)
-        units = "|".join(set(self.unit_map.values()))
-        pattern = rf'(\d+(?:\.\d+)?)\s*({units})'
+        # Filtro: No capturamos Watts menores a 10 (suelen ser ruidos de nombres de modelos como PG5W)
+        pattern = rf'(\d+(?:\.\d+)?)\s*({"|".join(self.units)})'
         matches = re.findall(pattern, normalized_name)
         for value, unit in matches:
+            val_float = float(value)
+            if unit == "w" and val_float < 10: continue 
             specs[unit] = value
             
-        # 2. Inteligencia para MHz huérfanos (ej: 3200 sin mhz)
         if "mhz" not in specs:
             mhz_match = re.search(r'\b(2400|2666|3000|3200|3600|4800|5200|5600|6000)\b', normalized_name)
-            if mhz_match:
-                specs["mhz"] = mhz_match.group(1)
+            if mhz_match: specs["mhz"] = mhz_match.group(1)
 
-        # 3. Inteligencia para RAM DDR
-        ddr_match = re.search(r'\bddr(\d)\b', normalized_name)
-        if ddr_match:
-            specs["ddr"] = ddr_match.group(1)
+        ddr_match = re.search(r'\bddr\s*(\d)\b', normalized_name)
+        if ddr_match: specs["ddr"] = ddr_match.group(1)
 
         return specs
 
@@ -79,28 +79,30 @@ class ProductMatcher:
             return {"score": 0.0, "is_match": False, "reason": f"Marcas diferentes: {brand1} vs {brand2}"}
 
         # 3. SIMILITUD DE TOKENS (Jaccard)
-        stop_words = {"de", "con", "para", "negro", "black", "white", "blanco", "pulg", "g", "hz", "w", "tb", "gb", "mb", "memoria", "ram"}
+        # Añadimos palabras genéricas a las stopwords para que no "inflen" ni "desinflen" el score
+        cat_words = {"monitor", "fuente", "joystick", "gamepad", "teclado", "mouse", "auricular", "auriculares", "gamer", "gaming", "disco", "solido", "ssd", "memoria", "ram"}
+        stop_words = {"de", "con", "para", "negro", "black", "white", "blanco", "pulg", "g", "hz", "w", "tb", "gb", "mb", "mhz"} | cat_words
+        
         set1 = set([t for t in n1.split() if t not in stop_words and len(t) > 1])
         set2 = set([t for t in n2.split() if t not in stop_words and len(t) > 1])
         
-        if not set1 or not set2:
-            return {"score": 0.0, "is_match": False}
+        if not set1 or not set2: return {"score": 0.0, "is_match": False}
             
         intersection = set1.intersection(set2)
         union = set1.union(set2)
         jaccard = len(intersection) / len(union)
         
-        # 4. PENALIZACIÓN POR VARIANTES CRÍTICAS (Evitar falsos positivos)
-        # Añadimos 'rgb' y 'pro' para que no se mezclen memorias con y sin luces
-        critical_variants = {"fe", "pro", "ti", "ultra", "plus", "max", "slim", "light", "rgb", "oc"}
+        # 4. PENALIZACIÓN POR VARIANTES CRÍTICAS
+        # Bajamos la penalización a 0.4 para ser muy estrictos
+        critical_variants = {"fe", "pro", "ti", "ultra", "plus", "max", "slim", "light", "rgb", "oc", "inalambrico", "bt"}
         for variant in critical_variants:
             if (variant in set1 and variant not in set2) or (variant in set2 and variant not in set1):
-                jaccard *= 0.5 # Penalización del 50%
+                jaccard *= 0.4
         
-        # 5. BONUS POR COINCIDENCIA DE SPECS
-        # Si coinciden en specs clave (DDR, MHz, GB), subimos el score
+        # 5. BONUS POR COINCIDENCIA TÉCNICA
+        # Si las specs (ej: 180hz, 24pulg) son idénticas y existen, damos un gran salto
         if specs1 and specs2 and specs1 == specs2:
-            jaccard += 0.1
+            jaccard += 0.25
 
         final_score = round(min(1.0, jaccard), 2)
         
