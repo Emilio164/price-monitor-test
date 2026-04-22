@@ -368,7 +368,21 @@ elif page == "Agregar Producto":
 
         if suggested_group:
             st.success(f"🔍 ¡Match automático! Sugerido el grupo: **{suggested_group}** (Confianza: {match_confidence*100:.0f}%)")
-        # ----------------------------------------
+        
+        # --- BLOQUE DE DIAGNÓSTICO (Solo para depuración) ---
+        with st.expander("🛠️ Ver Diagnóstico de Similitud (¿Por qué se sugiere o no?)"):
+            st.write("Comparando con productos existentes:")
+            diag_data = []
+            for p in existing_products:
+                m_res = matcher.get_similarity_score(product['name'], p.name)
+                diag_data.append({
+                    "Producto Existente": p.name,
+                    "Grupo": p.group_name,
+                    "Similitud": f"{m_res['score']*100:.0f}%",
+                    "¿Es Match?": "✅" if m_res['is_match'] else "❌"
+                })
+            st.table(diag_data)
+        # ----------------------------------------------------
 
         col1, col2 = st.columns(2)
         with col1:
