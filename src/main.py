@@ -454,7 +454,7 @@ elif page == "Historial de Precios":
                 # Show raw data in an expander
                 with st.expander("Ver Datos Crudos del Historial"):
                     st.table(df)
-                }
+                
                 df = pd.DataFrame(data)
                 df.set_index("Fecha", inplace=True)
                 
