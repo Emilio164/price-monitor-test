@@ -11,6 +11,7 @@ from src.scrapers.fullh4rd_scraper import FullH4rdScraper
 from src.scrapers.compragamer_scraper import CompragamerScraper
 from src.scrapers.diamond_scraper import DiamondScraper # Importación arriba
 from src.logic.notifications import send_discord_alert
+from src.logic.dolar_utils import get_dolar_blue
 
 # --- CONFIGURACIÓN ESCALABLE ---
 # Si agregas una tienda nueva, solo la sumas aquí:

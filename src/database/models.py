@@ -29,3 +29,12 @@ class PriceHistory(Base):
     is_out_of_stock = Column(Integer, default=0) # 0: False, 1: True
     
     product = relationship("Product", back_populates="prices")
+
+class DolarPrice(Base):
+    __tablename__ = 'dolar_history'
+    
+    id = Column(Integer, primary_key=True)
+    buy = Column(Float, nullable=False)
+    sell = Column(Float, nullable=False)
+    avg = Column(Float, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, unique=True)

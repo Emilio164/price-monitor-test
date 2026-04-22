@@ -105,6 +105,22 @@ def get_cached_products():
         })
     return processed_list
 
+def format_currency(amount, mode, timestamp=None):
+    """Formatea el precio según la moneda elegida y la fecha histórica."""
+    if mode == "Pesos ARS":
+        return f"${amount:,.2f}"
+    else:
+        # Modo Dólar Blue
+        from datetime import datetime
+        target_date = timestamp if timestamp else datetime.utcnow()
+        dolar_entry = db_manager.get_dolar_on_date(target_date)
+        
+        # Si no hay historia, usamos el promedio actual como fallback
+        dolar_val = dolar_entry.avg if dolar_entry else st.session_state.dolar_blue_data.get('avg', 1000)
+        
+        usd_amount = amount / dolar_val
+        return f"u$s {usd_amount:,.2f}"
+
 def run_scraper(url):
     if not url:
         st.error("Por favor, ingresa una URL.")
@@ -230,13 +246,16 @@ st.title("🔍 Multi-Site Price Monitor")
 st.sidebar.title("Navegación")
 page = st.sidebar.radio("", ["Panel de Control", "Agregar Producto", "Historial de Precios"], label_visibility="collapsed")
 
+# --- Currency Toggle ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("⚙️ Configuración")
+currency = st.sidebar.radio("Moneda de Visualización", ["Pesos ARS", "Dólar Blue"])
+
 # --- Dólar Blue Display ---
 if st.session_state.dolar_blue_data:
     dolar_info = st.session_state.dolar_blue_data
     st.sidebar.markdown(f"---")
-    st.sidebar.subheader("🇦🇷 Dólar Blue")
-    st.sidebar.metric("Compra", f"${dolar_info.get('buy', 'N/A'):,.2f}")
-    st.sidebar.metric("Venta", f"${dolar_info.get('sell', 'N/A'):,.2f}")
+    st.sidebar.subheader("🇦🇷 Dólar Blue Hoy")
     st.sidebar.metric("Promedio", f"${dolar_info.get('avg', 'N/A'):,.2f}")
 else:
     st.sidebar.markdown(f"---")

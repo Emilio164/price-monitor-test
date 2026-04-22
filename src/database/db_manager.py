@@ -158,3 +158,51 @@ class DatabaseManager:
             return False
         finally:
             session.close()
+
+    # --- Dólar History Methods ---
+    def add_dolar_entry(self, buy, sell, avg):
+        session = self.get_session()
+        try:
+            now = datetime.utcnow()
+            # Check if we already have an entry for today
+            existing = session.query(DolarPrice).filter(
+                DolarPrice.timestamp >= now.replace(hour=0, minute=0, second=0, microsecond=0)
+            ).first()
+            
+            if existing:
+                # Update today's value if it changed slightly
+                existing.buy = buy
+                existing.sell = sell
+                existing.avg = avg
+                session.commit()
+                return existing
+
+            new_entry = DolarPrice(buy=buy, sell=sell, avg=avg, timestamp=now)
+            session.add(new_entry)
+            session.commit()
+            return new_entry
+        finally:
+            session.close()
+
+    def get_latest_dolar(self):
+        session = self.get_session()
+        try:
+            return session.query(DolarPrice).order_by(DolarPrice.timestamp.desc()).first()
+        finally:
+            session.close()
+
+    def get_dolar_on_date(self, target_date):
+        """Busca el valor del dólar más cercano a una fecha dada."""
+        session = self.get_session()
+        try:
+            # Buscar el registro más cercano que no sea posterior a la fecha
+            entry = session.query(DolarPrice).filter(
+                DolarPrice.timestamp <= target_date
+            ).order_by(DolarPrice.timestamp.desc()).first()
+            
+            if not entry:
+                # Si no hay anteriores, buscar el primero que haya
+                entry = session.query(DolarPrice).order_by(DolarPrice.timestamp.asc()).first()
+            return entry
+        finally:
+            session.close()
