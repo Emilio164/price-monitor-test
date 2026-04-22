@@ -284,7 +284,6 @@ if page == "Panel de Control":
                         h3.write("**Precio Actual**")
                         h4.write("**Análisis**")
                         h5.write("")
-                        st.divider()
 
                         # Reducido el espacio quitando el divider extra si existiera o ajustando el margen
                         st.markdown("<hr style='margin:0; padding:0;'>", unsafe_allow_html=True)
