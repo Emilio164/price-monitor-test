@@ -181,7 +181,7 @@ st.title("🔍 Multi-Site Price Monitor")
 
 # --- Sidebar Navigation ---
 st.sidebar.title("Navegación")
-page = st.sidebar.radio("Ir a", ["Panel de Control", "Agregar Producto", "Historial de Precios"])
+page = st.sidebar.radio("", ["Panel de Control", "Agregar Producto", "Historial de Precios"], label_visibility="collapsed")
 
 # --- Dólar Blue Display ---
 if st.session_state.dolar_blue_data:
@@ -285,6 +285,10 @@ if page == "Panel de Control":
                         h4.write("**Análisis**")
                         h5.write("")
                         st.divider()
+
+                        # Reducido el espacio quitando el divider extra si existiera o ajustando el margen
+                        st.markdown("<hr style='margin:0; padding:0;'>", unsafe_allow_html=True)
+                        st.write("") # Pequeño espacio controlado
 
                         for prod, curr, prev, median, is_min, is_inflated, is_opportunity in group_items:
                             col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 0.5])
