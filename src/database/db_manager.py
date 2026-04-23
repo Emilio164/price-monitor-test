@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from .models import Base, Product, PriceHistory
+from .models import Base, Product, PriceHistory, DolarPrice
 from datetime import datetime
 import os
 from dotenv import load_dotenv

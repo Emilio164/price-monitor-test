@@ -113,10 +113,16 @@ def format_currency(amount, mode, timestamp=None):
         # Modo Dólar Blue
         from datetime import datetime
         target_date = timestamp if timestamp else datetime.utcnow()
-        dolar_entry = db_manager.get_dolar_on_date(target_date)
         
-        # Si no hay historia, usamos el promedio actual como fallback
-        dolar_val = dolar_entry.avg if dolar_entry else st.session_state.dolar_blue_data.get('avg', 1000)
+        dolar_val = 1000.0 # Fallback inicial
+        try:
+            dolar_entry = db_manager.get_dolar_on_date(target_date)
+            if dolar_entry and dolar_entry.avg > 0:
+                dolar_val = dolar_entry.avg
+            elif st.session_state.dolar_blue_data:
+                dolar_val = st.session_state.dolar_blue_data.get('avg', 1000)
+        except:
+            pass
         
         usd_amount = amount / dolar_val
         return f"u$s {usd_amount:,.2f}"
