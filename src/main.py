@@ -295,8 +295,8 @@ if page == "Panel de Control":
             st.cache_data.clear() # Limpiar caché para forzar lectura fresca
             asyncio.run(update_all_prices())
 
-    # Cargar productos procesados con Caché
-    processed_products = get_cached_products()
+    # Cargar productos procesados con Caché (dependiente de la moneda)
+    processed_products = get_cached_products(currency)
     
     if not processed_products:
         st.info("Aún no hay productos monitoreados. Ve a 'Agregar Producto' para empezar.")
@@ -361,7 +361,8 @@ if page == "Panel de Control":
                                 st.caption(f"_{prod.name}_")
                             
                             with col2:
-                                st.write(f"${prod.min_price:,.2f}" if prod.min_price else "N/A")
+                                # Mínimo histórico (usamos fecha de creación como referencia aproximada)
+                                st.write(format_currency(prod.min_price, currency, prod.created_at) if prod.min_price else "N/A")
                                 if is_min:
                                     st.markdown(":sparkles: **MÍNIMO**")
                             
@@ -375,15 +376,16 @@ if page == "Panel de Control":
                                         trend_color = "green"
                                         diff = prev - curr
                                         percent = (diff / prev) * 100
-                                        trend_details = f"<br><span style='color:green; font-size: 14px;'>📉 -${diff:,.2f} (-{percent:.1f}%)</span>"
+                                        # Formatear la diferencia en la moneda elegida
+                                        trend_details = f"<br><span style='color:green; font-size: 14px;'>📉 -{format_currency(diff, currency)} (-{percent:.1f}%)</span>"
                                     elif curr > prev:
                                         trend_icon = "↑"
                                         trend_color = "red"
                                         diff = curr - prev
                                         percent = (diff / prev) * 100
-                                        trend_details = f"<br><span style='color:red; font-size: 14px;'>📈 +${diff:,.2f} (+{percent:.1f}%)</span>"
+                                        trend_details = f"<br><span style='color:red; font-size: 14px;'>📈 +{format_currency(diff, currency)} (+{percent:.1f}%)</span>"
                                 
-                                st.markdown(f"#### ${curr:,.2f}")
+                                st.markdown(f"#### {format_currency(curr, currency)}")
                                 st.markdown(f"<span style='color:{trend_color}; font-size: 18px;'>{trend_icon}</span> (vs anterior){trend_details}", unsafe_allow_html=True)
                             
                             with col4:
@@ -395,7 +397,7 @@ if page == "Panel de Control":
                                     st.write("Estable")
                                 
                                 if median > 0:
-                                    st.caption(f"Mediana: ${median:,.2f}")
+                                    st.caption(f"Mediana: {format_currency(median, currency)}")
                             
                             with col5:
                                 if st.button("🗑️", key=f"del_{prod.id}", help="Eliminar Producto"):

@@ -13,8 +13,12 @@ class CompragamerScraper(BaseScraper):
 
     async def scrape(self) -> dict:
         async with async_playwright() as p:
+            # Detectar si estamos en un servidor (Linux) o en PC personal (Windows/Mac)
+            is_server = sys.platform not in ["win32", "darwin"]
             is_ci = os.environ.get("GITHUB_ACTIONS") == "true"
-            browser = await p.chromium.launch(headless=is_ci)
+            force_headless = is_server or is_ci
+            
+            browser = await p.chromium.launch(headless=force_headless)
             
             # Usar un contexto limpio sin headers extraños que delaten
             context = await browser.new_context(

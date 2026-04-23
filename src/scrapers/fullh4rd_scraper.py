@@ -13,7 +13,12 @@ class FullH4rdScraper(BaseScraper):
 
     async def scrape(self) -> dict:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            # Detectar si estamos en servidor o local
+            is_server = sys.platform not in ["win32", "darwin"]
+            is_ci = os.environ.get("GITHUB_ACTIONS") == "true"
+            force_headless = is_server or is_ci
+            
+            browser = await p.chromium.launch(headless=force_headless)
             
             # Setup context with enhanced stealth
             viewport_width = random.randint(1280, 1920)
