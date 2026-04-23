@@ -75,7 +75,7 @@ db_manager.init_db() # Ensure tables are created
 
 # --- Helper functions ---
 @st.cache_data(ttl=600)
-def get_cached_products():
+def get_cached_products(currency_mode):
     """Obtiene y procesa todos los productos de la DB con caché de 10 min."""
     tracked_products = db_manager.get_all_products()
     processed_list = []
@@ -541,3 +541,4 @@ elif page == "Historial de Precios":
                 # Show raw data in an expander
                 with st.expander("Ver Datos Crudos del Historial"):
                     st.table(df)
+
