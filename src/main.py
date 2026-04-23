@@ -226,8 +226,14 @@ if page == "Panel de Control":
 
 elif page == "Agregar Producto":
     st.header("➕ Agregar Producto")
-    url = st.text_input("URL del Producto")
-    if st.button("Analizar URL"): run_scraper(url)
+    url = st.text_input("URL del Producto", placeholder="Pega el link de Compragamer, FullH4rd o Diamond aquí...")
+    if st.button("Analizar URL", use_container_width=True):
+        if url:
+            with st.spinner("🕵️ El robot está analizando el sitio... Por favor espera."):
+                run_scraper(url)
+        else:
+            st.warning("⚠️ Por favor, ingresa una URL primero.")
+            
     if st.session_state.scraped_product:
         sp = st.session_state.scraped_product
         st.subheader("Resultado del Análisis:")
