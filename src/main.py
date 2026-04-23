@@ -244,10 +244,17 @@ elif page == "Agregar Producto":
             
             if suggested_grp: st.success(f"🔍 Sugerido: {suggested_grp} ({match_conf*100:.0f}%)")
             
-            grp_name = st.selectbox("Grupo", ["Nuevo..."] + ex_groups, index=ex_groups.index(suggested_grp)+1 if suggested_grp in ex_groups else 0)
-            final_grp = st.text_input("Nombre Grupo", value=suggested_grp if grp_name == "Nuevo..." else grp_name) if grp_name == "Nuevo..." else grp_name
-            cat_name = st.selectbox("Categoría", ["Nueva..."] + ex_cats, index=ex_cats.index(suggested_cat)+1 if suggested_cat in ex_cats else 0)
-            final_cat = st.text_input("Nombre Categoría", value=suggested_cat if cat_name == "Nueva..." else cat_name) if cat_name == "Nueva..." else cat_name
+            grp_name_sel = st.selectbox("Grupo", ["Nuevo..."] + ex_groups, index=ex_groups.index(suggested_grp)+1 if suggested_grp in ex_groups else 0)
+            if grp_name_sel == "Nuevo...":
+                final_grp = st.text_input("Nombre del Nuevo Grupo", value=suggested_grp if suggested_grp else sp['name'])
+            else:
+                final_grp = grp_name_sel
+                
+            cat_name_sel = st.selectbox("Categoría", ["Nueva..."] + ex_cats, index=ex_cats.index(suggested_cat)+1 if suggested_cat in ex_cats else 0)
+            if cat_name_sel == "Nueva...":
+                final_cat = st.text_input("Nombre de la Nueva Categoría", value=suggested_cat)
+            else:
+                final_cat = cat_name_sel
 
         if st.button("Confirmar Monitoreo"):
             if save_to_db(sp, final_grp, final_cat):
