@@ -35,6 +35,14 @@ async def update_all_prices():
     db_manager = DatabaseManager()
     db_manager.init_db()
     
+    # --- Guardar valor del dólar del día ---
+    print("📈 Obteniendo valor del Dólar Blue...")
+    dolar_data = get_dolar_blue()
+    if dolar_data:
+        db_manager.add_dolar_entry(dolar_data['buy'], dolar_data['sell'], dolar_data['avg'])
+        print(f"✅ Dólar Blue guardado: ${dolar_data['avg']}")
+    # --------------------------------------
+
     products = db_manager.get_all_products()
     if not products:
         print("No hay productos para actualizar.")
