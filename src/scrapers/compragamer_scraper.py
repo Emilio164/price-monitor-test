@@ -5,6 +5,7 @@ from .base_scraper import BaseScraper, ScrapingBlockException
 import re
 import os
 import random
+import sys
 
 class CompragamerScraper(BaseScraper):
     def __init__(self, url: str, user_agent: str = None):

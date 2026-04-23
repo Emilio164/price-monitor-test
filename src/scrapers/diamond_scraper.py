@@ -6,6 +6,7 @@ import re
 import os
 import random
 import json
+import sys
 
 class DiamondScraper(BaseScraper):
     def __init__(self, url: str, user_agent: str = None):
