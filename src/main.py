@@ -188,11 +188,17 @@ if page == "Panel de Control":
         st.info("No hay productos para mostrar.")
     else:
         st.divider()
-        categories = sorted(list(set([x['prod'].category for x in display_list])))
+        # Manejar categorías con posible valor None
+        categories = sorted(list(set([x['prod'].category for x in display_list if x['prod'].category])))
+        if not categories: categories = ["General"]
+
         for cat in categories:
             st.header(f"📂 {cat}")
             cat_items = [x for x in display_list if x['prod'].category == cat]
-            groups = sorted(list(set([x['prod'].group_name for x in cat_items])))
+            
+            # Manejar grupos con posible valor None
+            groups = sorted(list(set([x['prod'].group_name for x in cat_items if x['prod'].group_name])))
+            
             for grp in groups:
                 with st.expander(f"📦 {grp}", expanded=True):
                     h1, h2, h3, h4, h5 = st.columns([2, 1, 1, 1, 0.5])
@@ -244,15 +250,26 @@ elif page == "Agregar Producto":
             
             if suggested_grp: st.success(f"🔍 Sugerido: {suggested_grp} ({match_conf*100:.0f}%)")
             
-            grp_name_sel = st.selectbox("Grupo", ["Nuevo..."] + ex_groups, index=ex_groups.index(suggested_grp)+1 if suggested_grp in ex_groups else 0)
+            # --- LLAVES ÚNICAS PARA EVITAR CAMPOS VACÍOS ---
+            # Usamos un hash del nombre para que el campo se resetee con cada producto
+            field_id = str(hash(sp['name']))
+            
+            grp_name_sel = st.selectbox("Grupo", ["Nuevo..."] + ex_groups, 
+                                        index=ex_groups.index(suggested_grp)+1 if suggested_grp in ex_groups else 0,
+                                        key=f"sel_grp_{field_id}")
+            
             if grp_name_sel == "Nuevo...":
-                final_grp = st.text_input("Nombre del Nuevo Grupo", value=suggested_grp if suggested_grp else sp['name'])
+                # Forzamos el valor por defecto si no hay sugerencia
+                default_val = suggested_grp if suggested_grp else sp['name']
+                final_grp = st.text_input("Nombre del Nuevo Grupo", value=default_val, key=f"input_grp_{field_id}")
             else:
                 final_grp = grp_name_sel
                 
-            cat_name_sel = st.selectbox("Categoría", ["Nueva..."] + ex_cats, index=ex_cats.index(suggested_cat)+1 if suggested_cat in ex_cats else 0)
+            cat_name_sel = st.selectbox("Categoría", ["Nueva..."] + ex_cats, 
+                                        index=ex_cats.index(suggested_cat)+1 if suggested_cat in ex_cats else 0,
+                                        key=f"sel_cat_{field_id}")
             if cat_name_sel == "Nueva...":
-                final_cat = st.text_input("Nombre de la Nueva Categoría", value=suggested_cat)
+                final_cat = st.text_input("Nombre de la Nueva Categoría", value=suggested_cat, key=f"input_cat_{field_id}")
             else:
                 final_cat = cat_name_sel
 
