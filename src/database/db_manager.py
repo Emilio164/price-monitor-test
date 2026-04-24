@@ -159,6 +159,19 @@ class DatabaseManager:
         finally:
             session.close()
 
+    def update_product_group(self, product_id, new_group_name):
+        """Actualiza el nombre del grupo de un producto específico."""
+        session = self.get_session()
+        try:
+            product = session.query(Product).get(product_id)
+            if product:
+                product.group_name = new_group_name
+                session.commit()
+                return True
+            return False
+        finally:
+            session.close()
+
     # --- Dólar History Methods ---
     def add_dolar_entry(self, buy, sell, avg):
         session = self.get_session()

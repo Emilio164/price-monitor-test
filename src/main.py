@@ -222,6 +222,14 @@ if page == "Panel de Control":
                             elif item['is_opportunity']: st.success("✅ OFERTA")
                             else: st.write("Estable")
                         with c5:
+                            # Botón de Desvincular (🔓)
+                            if st.button("🔓", key=f"unlink_{p.id}", help="Desvincular de este grupo"):
+                                # Asignar su propio nombre como nombre de grupo para separarlo
+                                if db_manager.update_product_group(p.id, p.name):
+                                    st.toast(f"Producto desvinculado con éxito")
+                                    st.cache_data.clear()
+                                    st.rerun()
+                                    
                             if st.button("🗑️", key=f"del_{p.id}"):
                                 if db_manager.delete_product(p.id): st.cache_data.clear(); st.rerun()
                         st.divider()
