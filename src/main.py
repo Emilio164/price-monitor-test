@@ -212,9 +212,11 @@ if page == "Panel de Control":
                         with c3:
                             st.markdown(f"#### {format_currency(item['curr'], currency)}")
                             if item['prev'] > 0:
-                                color = "green" if item['curr'] < item['prev'] else "red"
                                 diff = abs(item['curr'] - item['prev'])
-                                st.markdown(f"<span style='color:{color};'>{'↓' if item['curr'] < item['prev'] else '↑'} {format_currency(diff, currency)}</span>", unsafe_allow_html=True)
+                                percent = (diff / item['prev']) * 100
+                                color = "green" if item['curr'] < item['prev'] else "red"
+                                icon = "↓" if item['curr'] < item['prev'] else "↑"
+                                st.markdown(f"<span style='color:{color}; font-size: 14px;'>{icon} {format_currency(diff, currency)} ({percent:.1f}%)</span>", unsafe_allow_html=True)
                         with c4:
                             if item['is_inflated']: st.error("🚩 INFLADO")
                             elif item['is_opportunity']: st.success("✅ OFERTA")
