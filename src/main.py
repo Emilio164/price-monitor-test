@@ -203,6 +203,33 @@ st.markdown("""
     .pill-up { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
     .pill-neutral { background-color: rgba(108, 117, 125, 0.2); color: #adb5bd; border: 1px solid #495057; }
     
+    /* Estilo de los botones de filtro superiores */
+    div[data-testid="stHorizontalBlock"] .stButton > button {
+        border-radius: 20px !important;
+        border: 1px solid #2d3142 !important;
+        background-color: #0e1117 !important;
+        color: #ffffff !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease;
+    }
+    
+    /* Botón Activo (Simulando el azul de la imagen) */
+    div[data-testid="stHorizontalBlock"] .stButton > button[kind="primary"] {
+        background-color: #4a90e2 !important;
+        border-color: #4a90e2 !important;
+        color: white !important;
+    }
+    
+    /* Hover en botones */
+    div[data-testid="stHorizontalBlock"] .stButton > button:hover {
+        border-color: #4a90e2 !important;
+        color: #4a90e2 !important;
+    }
+    div[data-testid="stHorizontalBlock"] .stButton > button[kind="primary"]:hover {
+        background-color: #357abd !important;
+        color: white !important;
+    }
+    
     /* Ajuste de Expanders */
     .stExpander {
         border: none !important;
