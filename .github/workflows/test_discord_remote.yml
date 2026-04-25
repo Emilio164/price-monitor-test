@@ -1,0 +1,21 @@
+name: Test Discord Notification
+
+on:
+  workflow_dispatch: # Permite correrlo manualmente desde la pestaña Actions
+
+jobs:
+  test-discord:
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install requests python-dotenv
+      - name: Run Discord Test
+        run: python tests/test_discord.py
