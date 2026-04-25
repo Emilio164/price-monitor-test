@@ -1,5 +1,6 @@
 # Ignore files that should not be committed to the repository
 RUN_MONITOR.bat
+UI Diseño/
 
 # Python
 __pycache__/

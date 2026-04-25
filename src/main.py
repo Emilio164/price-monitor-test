@@ -153,7 +153,73 @@ if st.session_state.dolar_blue_data is None:
 
 # --- UI Layout ---
 st.set_page_config(page_title="Price Monitor", layout="wide")
+
+# --- CSS Personalizado para Diseño Azul Modo Oscuro ---
+st.markdown("""
+    <style>
+    /* Fondo principal */
+    .stApp {
+        background-color: #0e1117;
+    }
+    
+    /* Estilo de las Tarjetas de Producto */
+    .product-card {
+        background-color: #1e2130;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        border: 1px solid #2d3142;
+        display: flex;
+        align-items: center;
+        transition: transform 0.2s;
+    }
+    .product-card:hover {
+        border-color: #4a90e2;
+        transform: translateY(-2px);
+    }
+    
+    /* Etiquetas de precios */
+    .price-label {
+        color: #8e94a5;
+        font-size: 12px;
+        text-transform: uppercase;
+        margin-bottom: 2px;
+    }
+    .price-value {
+        color: #ffffff;
+        font-size: 18px;
+        font-weight: bold;
+    }
+    
+    /* Pastillas (Pills) de Descuento */
+    .drop-pill {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+        display: inline-block;
+    }
+    .pill-down { background-color: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
+    .pill-up { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
+    .pill-neutral { background-color: rgba(108, 117, 125, 0.2); color: #adb5bd; border: 1px solid #495057; }
+    
+    /* Ajuste de Expanders */
+    .stExpander {
+        border: none !important;
+        box-shadow: none !important;
+        background-color: transparent !important;
+    }
+    .stExpander > div:first-child {
+        background-color: #161b22 !important;
+        border-radius: 8px !important;
+        margin-bottom: 10px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 st.title("🔍 Multi-Site Price Monitor")
+
+# ... rest of sidebar code ...
 
 # --- Sidebar ---
 st.sidebar.title("Navegación")
@@ -201,38 +267,59 @@ if page == "Panel de Control":
             
             for grp in groups:
                 with st.expander(f"📦 {grp}", expanded=True):
-                    h1, h2, h3, h4, h5 = st.columns([2, 1, 1, 1, 0.5])
-                    h1.write("**Tienda**"); h2.write("**Mínimo**"); h3.write("**Actual**"); h4.write("**Análisis**"); h5.write("")
-                    st.markdown("<hr style='margin:0; padding:0;'>", unsafe_allow_html=True)
                     for item in [x for x in cat_items if x['prod'].group_name == grp]:
                         p = item['prod']
-                        c1, c2, c3, c4, c5 = st.columns([2, 1, 1, 1, 0.5])
-                        with c1: st.write(f"**{p.store}**"); st.caption(f"[{p.name}]({p.url})")
-                        with c2: st.write(format_currency(p.min_price, currency, p.created_at))
-                        with c3:
-                            st.markdown(f"#### {format_currency(item['curr'], currency)}")
-                            if item['prev'] > 0:
-                                diff = abs(item['curr'] - item['prev'])
-                                percent = (diff / item['prev']) * 100
-                                color = "green" if item['curr'] < item['prev'] else "red"
-                                icon = "↓" if item['curr'] < item['prev'] else "↑"
-                                st.markdown(f"<span style='color:{color}; font-size: 14px;'>{icon} {format_currency(diff, currency)} ({percent:.1f}%)</span>", unsafe_allow_html=True)
-                        with c4:
-                            if item['is_inflated']: st.error("🚩 INFLADO")
-                            elif item['is_opportunity']: st.success("✅ OFERTA")
-                            else: st.write("Estable")
-                        with c5:
-                            # Botón de Desvincular (🔓)
-                            if st.button("🔓", key=f"unlink_{p.id}", help="Desvincular de este grupo"):
-                                # Asignar su propio nombre como nombre de grupo para separarlo
-                                if db_manager.update_product_group(p.id, p.name):
-                                    st.toast(f"Producto desvinculado con éxito")
-                                    st.cache_data.clear()
-                                    st.rerun()
+                        curr = item['curr']
+                        prev = item['prev']
+                        
+                        # --- DISEÑO DE TARJETA ---
+                        with st.container():
+                            # Usamos columnas para la disposición horizontal de la tarjeta
+                            col_info, col_min, col_actual, col_variation, col_actions = st.columns([2.5, 1.5, 1.5, 1.5, 0.8])
+                            
+                            with col_info:
+                                # Nombre de Tienda como Link + Nombre de Producto
+                                st.markdown(f"**[{p.store} ↗️]({p.url})**")
+                                st.caption(p.name)
+                            
+                            with col_min:
+                                st.markdown('<p class="price-label">Mínimo Histórico</p>', unsafe_allow_html=True)
+                                val = format_currency(p.min_price, currency, p.created_at) if p.min_price else "N/A"
+                                st.markdown(f'<p class="price-value">{val}</p>', unsafe_allow_html=True)
+                                if item['is_min']:
+                                    st.markdown("✨ **RÉCORD**")
+                            
+                            with col_actual:
+                                st.markdown('<p class="price-label">Precio Actual</p>', unsafe_allow_html=True)
+                                st.markdown(f'<p class="price-value">{format_currency(curr, currency)}</p>', unsafe_allow_html=True)
+                                if item['is_inflated']: st.caption("🚩 Inflado")
+                                elif item['is_opportunity']: st.caption("✅ Oferta")
+                            
+                            with col_variation:
+                                st.markdown('<p class="price-label">Variación</p>', unsafe_allow_html=True)
+                                if prev > 0:
+                                    diff = abs(curr - prev)
+                                    percent = (diff / prev) * 100
+                                    if curr < prev:
+                                        st.markdown(f'<div class="drop-pill pill-down">↓ {format_currency(diff, currency)} ({percent:.1f}%)</div>', unsafe_allow_html=True)
+                                    elif curr > prev:
+                                        st.markdown(f'<div class="drop-pill pill-up">↑ {format_currency(diff, currency)} ({percent:.1f}%)</div>', unsafe_allow_html=True)
+                                    else:
+                                        st.markdown('<div class="drop-pill pill-neutral">Sin cambios</div>', unsafe_allow_html=True)
+                                else:
+                                    st.markdown('<div class="drop-pill pill-neutral">Nuevo</div>', unsafe_allow_html=True)
                                     
-                            if st.button("🗑️", key=f"del_{p.id}"):
-                                if db_manager.delete_product(p.id): st.cache_data.clear(); st.rerun()
-                        st.divider()
+                            with col_actions:
+                                # Acciones alineadas verticalmente
+                                if st.button("🔓", key=f"unl_{p.id}", help="Desvincular"):
+                                    if db_manager.update_product_group(p.id, p.name):
+                                        st.toast("Separado"); st.cache_data.clear(); st.rerun()
+                                if st.button("🗑️", key=f"del_{p.id}", help="Eliminar"):
+                                    if db_manager.delete_product(p.id):
+                                        st.toast("Eliminado"); st.cache_data.clear(); st.rerun()
+                            
+                            # Separador sutil entre tarjetas
+                            st.markdown("<hr style='margin:10px 0; border:0.5px solid #2d3142; opacity:0.3;'>", unsafe_allow_html=True)
 
 elif page == "Agregar Producto":
     st.header("➕ Agregar Producto")
