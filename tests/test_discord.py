@@ -3,7 +3,8 @@ import sys
 from dotenv import load_dotenv
 
 # Asegurar que la raíz del proyecto esté en el path
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+# Al estar en 'tests/', subimos un nivel para encontrar 'src'
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.logic.notifications import send_discord_alert
 
